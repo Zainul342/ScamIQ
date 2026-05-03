@@ -210,6 +210,25 @@
     @apply bg-card border-2 border-border rounded-3xl shadow-sm overflow-hidden;
     border-bottom-width: 4px;
   }
+
+  .step-card {
+    @apply flex flex-col items-center text-center gap-4 p-6;
+  }
+
+  .step-number {
+    @apply w-12 h-12 rounded-full flex items-center justify-center text-xl font-black text-white;
+  }
+
+  .scam-type-card {
+    @apply rounded-2xl p-5 flex flex-col items-center text-center gap-3 transition-all duration-200 hover:scale-105 cursor-default;
+    border: 2px solid #e5e5e5;
+    border-bottom-width: 4px;
+    background: #fff;
+  }
+
+  .stat-item {
+    @apply flex flex-col items-center text-center;
+  }
 }
 
 @keyframes pulse-soft {
