@@ -57,7 +57,7 @@ export default function Home() {
       <nav className="w-full border-b sticky top-0 z-50 backdrop-blur-md" style={{ borderColor: S.border, background: "rgba(255,255,255,0.95)" }}>
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollTo("hero")}>
-            <Shield className="w-8 h-8" style={{ color: S.green }} />
+            <img src="/images/logo.png" alt="ScamIQ Logo" className="w-10 h-10 object-contain" />
             <span className="font-black text-2xl tracking-tight" style={{ color: S.green }}>scamIQ</span>
           </div>
           <div className="hidden md:flex items-center gap-6">
@@ -305,7 +305,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-6 h-6" style={{ color: S.green }} />
+              <img src="/images/logo.png" alt="ScamIQ Logo" className="w-8 h-8 object-contain" />
               <span className="font-black text-lg" style={{ color: S.green }}>scamIQ</span>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: S.lightGray }}>The free, fun way to learn scam detection. Powered by AI.</p>
