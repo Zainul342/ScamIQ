@@ -23,6 +23,7 @@ export default function Results() {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [displayScore, setDisplayScore] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [biggestWeakness, setBiggestWeakness] = useState<string | null>(null);
 
   const maxPossibleScore = 800 + (Math.floor(8 / 3) * 25);
   const normalizedScore = Math.min(100, Math.round((score / 850) * 100)); // normalized roughly
@@ -48,6 +49,31 @@ export default function Results() {
 
     return () => clearInterval(timer);
   }, [actualScore]);
+
+  useEffect(() => {
+    if (answers.length > 0) {
+      const wrongAnswers = answers.filter(a => !a.isCorrect);
+      if (wrongAnswers.length > 0) {
+        // Count occurrences of each category in wrong answers
+        const categoryCounts: Record<string, number> = {};
+        wrongAnswers.forEach(a => {
+          const cat = a.scenario.category;
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+
+        // Find the category with the most errors
+        let maxCount = 0;
+        let worstCat = '';
+        Object.entries(categoryCounts).forEach(([cat, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            worstCat = cat;
+          }
+        });
+        setBiggestWeakness(worstCat);
+      }
+    }
+  }, [answers]);
 
   useEffect(() => {
     if (answers.length > 0 && generateCoaching.isIdle) {
@@ -151,15 +177,20 @@ export default function Results() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col items-center p-4 md:p-6 pb-24 overflow-x-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center p-4 md:p-6 pb-24 overflow-x-hidden relative">
+      {/* Arcade Background Effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 arcade-grid opacity-20"></div>
+        <div className="absolute inset-0 scanlines opacity-10"></div>
+      </div>
       
       <ShareCard ref={shareCardRef} score={actualScore} badge={badge} />
 
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 relative z-10">
         
         {/* Score Header */}
-        <div className="bg-card border border-card-border rounded-3xl p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
+        <div className="arcade-card border-2 border-primary/30 rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden bg-card/80 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none"></div>
           
           <motion.div 
             initial={{ scale: 0.5, opacity: 0 }}
@@ -169,50 +200,58 @@ export default function Results() {
             <Shield className="w-16 h-16 text-primary drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]" />
           </motion.div>
           
-          <h2 className="text-muted-foreground uppercase tracking-widest font-bold text-sm mb-2">Your ScamIQ</h2>
+          <h2 className="text-primary uppercase tracking-[0.3em] font-black text-xs mb-2 drop-shadow-neon">Your ScamIQ</h2>
           
-          <div className="text-8xl md:text-9xl font-mono font-bold text-transparent bg-clip-text bg-gradient-to-br from-primary to-accent mb-6">
-            {displayScore}
+          <div className="text-8xl md:text-9xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-br from-primary via-accent to-primary mb-6 drop-shadow-[0_0_30px_rgba(56,189,248,0.4)]">
+            {displayScore.toString().padStart(3, '0')}
           </div>
           
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 1.5, type: 'spring' }}
-            className="bg-secondary/50 border border-secondary-foreground/10 px-6 py-3 rounded-full flex items-center gap-3"
+            className="bg-primary/20 border-2 border-primary/40 px-8 py-4 rounded-2xl flex items-center gap-4 shadow-[0_0_20px_rgba(56,189,248,0.2)]"
           >
-            <Trophy className="w-6 h-6 text-warning" />
-            <span className="text-xl font-heading font-bold text-foreground">{badge}</span>
+            <Trophy className="w-8 h-8 text-warning filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+            <span className="text-2xl font-black uppercase tracking-tight text-white drop-shadow-neon">{badge}</span>
           </motion.div>
         </div>
 
         {/* Stats Grid */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center text-center">
-            <span className="text-muted-foreground text-sm font-medium mb-1">Correct</span>
-            <span className="text-2xl font-mono font-bold text-success">{correctCount}/8</span>
+          <div className="arcade-card border border-success/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
+            <span className="text-success text-[10px] font-black uppercase tracking-wider mb-1">CORRECT</span>
+            <span className="text-3xl font-mono font-bold text-success drop-shadow-neon-success">{correctCount}/8</span>
           </div>
-          <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center text-center">
-            <span className="text-muted-foreground text-sm font-medium mb-1">Wrong</span>
-            <span className="text-2xl font-mono font-bold text-destructive">{8 - correctCount}</span>
+          <div className="arcade-card border border-destructive/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
+            <span className="text-destructive text-[10px] font-black uppercase tracking-wider mb-1">WRONG</span>
+            <span className="text-3xl font-mono font-bold text-destructive drop-shadow-neon-destructive">{8 - correctCount}</span>
           </div>
-          <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center text-center">
-            <span className="text-muted-foreground text-sm font-medium mb-1">Best Streak</span>
-            <span className="text-2xl font-mono font-bold text-warning flex items-center gap-1">
-              {bestStreak} <Flame className="w-4 h-4" />
+          <div className="arcade-card border border-warning/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
+            <span className="text-warning text-[10px] font-black uppercase tracking-wider mb-1">STREAK</span>
+            <span className="text-3xl font-mono font-bold text-warning flex items-center gap-1 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
+              {bestStreak} <Flame className="w-5 h-5" />
             </span>
           </div>
-          <div className="bg-card border border-card-border rounded-2xl p-4 flex flex-col items-center text-center">
-            <span className="text-muted-foreground text-sm font-medium mb-1">Points</span>
-            <span className="text-2xl font-mono font-bold text-foreground">{score}</span>
+          <div className="arcade-card border border-accent/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
+            <span className="text-accent text-[10px] font-black uppercase tracking-wider mb-1">POINTS</span>
+            <span className="text-3xl font-mono font-bold text-accent drop-shadow-neon-accent">{score}</span>
           </div>
         </div>
 
         {/* AI Coaching Section */}
-        <div className="bg-card border border-card-border rounded-3xl p-6 relative overflow-hidden">
-          <div className="flex items-center gap-2 mb-4 text-accent font-bold">
-            <BrainCircuit className="w-5 h-5" />
-            <h3>AI Weakness Coach</h3>
+        <div className="arcade-card border-2 border-accent/30 rounded-[2rem] p-6 relative overflow-hidden bg-card/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3 text-accent font-black uppercase tracking-wider">
+              <BrainCircuit className="w-6 h-6 drop-shadow-neon-accent" />
+              <h3>Weakness Analysis</h3>
+            </div>
+            {biggestWeakness && (
+              <div className="bg-destructive/20 border border-destructive/40 px-3 py-1 rounded-lg text-[10px] font-black text-destructive uppercase tracking-widest animate-pulse">
+                CRITICAL: {biggestWeakness}
+              </div>
+            )}
           </div>
           
           {correctCount === 8 ? (
@@ -248,21 +287,21 @@ export default function Results() {
           <Button 
             onClick={() => { resetGame(); startGame(); }}
             size="lg" 
-            className="h-14 text-base font-bold bg-secondary hover:bg-secondary/80 text-foreground border border-border"
+            className="h-16 text-lg font-black bg-card hover:bg-secondary text-foreground border-2 border-border rounded-2xl border-b-8 active:border-b-0 active:translate-y-2 transition-all"
           >
-            <Play className="w-5 h-5 mr-2" /> Play Again
+            <Play className="w-6 h-6 mr-3" /> REPLAY
           </Button>
           
           <Button 
             onClick={playAIChallenges}
             size="lg" 
             disabled={generateScenarios.isPending}
-            className="h-14 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_20px_rgba(56,189,248,0.3)]"
+            className="h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl border-b-8 border-primary-foreground/20 active:border-b-0 active:translate-y-2 transition-all shadow-[0_10px_30px_rgba(56,189,248,0.4)]"
           >
             {generateScenarios.isPending ? (
-              <span className="flex items-center"><Sparkles className="w-5 h-5 mr-2 animate-spin" /> Loading...</span>
+              <span className="flex items-center uppercase"><Sparkles className="w-6 h-6 mr-3 animate-spin" /> Analyzing...</span>
             ) : (
-              <span className="flex items-center"><Sparkles className="w-5 h-5 mr-2" /> Try AI Challenges</span>
+              <span className="flex items-center uppercase"><Sparkles className="w-6 h-6 mr-3" /> AI CHALLENGE</span>
             )}
           </Button>
         </div>
