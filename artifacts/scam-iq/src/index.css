@@ -171,6 +171,45 @@
   .drop-shadow-neon-destructive {
     filter: drop-shadow(0 0 8px rgba(255, 77, 109, 0.6));
   }
+
+  /* DUOLINGO STYLE UI */
+  .duo-btn {
+    @apply relative font-heading font-extrabold uppercase tracking-wide rounded-2xl transition-all duration-150 select-none flex items-center justify-center border-2 border-transparent outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  
+  .duo-btn:active:not(:disabled) {
+    @apply translate-y-[4px];
+    border-bottom-width: 2px !important;
+  }
+  
+  .duo-btn-primary {
+    @apply bg-[#58cc02] text-white hover:bg-[#61e002] border-[#58a700];
+    border-bottom-width: 6px;
+  }
+  
+  .duo-btn-secondary {
+    @apply bg-transparent text-[#1cb0f6] border-2 border-[#1cb0f6] hover:bg-[#1cb0f6]/10;
+    border-bottom-width: 6px;
+  }
+  
+  .duo-btn-danger {
+    @apply bg-[#ff4b4b] text-white hover:bg-[#ff5f5f] border-[#ea2b2b];
+    border-bottom-width: 6px;
+  }
+
+  .duo-btn-warning {
+    @apply bg-[#ffc800] text-white hover:bg-[#ffd233] border-[#e5b400];
+    border-bottom-width: 6px;
+  }
+
+  .duo-btn-ghost {
+    @apply bg-transparent text-muted-foreground hover:bg-secondary/50 border-transparent hover:border-transparent active:border-b-0;
+  }
+  
+  .duo-card {
+    @apply bg-card border-2 border-border rounded-3xl shadow-sm overflow-hidden;
+    border-bottom-width: 4px;
+  }
 }
 
 @keyframes pulse-soft {

@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'wouter';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import confetti from 'canvas-confetti';
 import { Shield, Trophy, Share2, Download, Copy, Play, Sparkles, BrainCircuit, Flame, CheckCircle2, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useGame } from '../lib/game-store';
 import { ShareCard } from '../components/share-card';
@@ -18,15 +17,16 @@ const getBadgeForScore = (score: number) => {
   return 'Easy Target';
 };
 
-const BADGE_COLOR: Record<string, string> = {
-  'Human Firewall': 'text-success',
-  'Fraud Fighter': 'text-primary',
-  'Scam Spotter': 'text-warning',
-  'Cautious Clicker': 'text-orange-400',
-  'Easy Target': 'text-danger',
+const BADGE_STYLE: Record<string, { color: string; bg: string }> = {
+  'Human Firewall': { color: '#58cc02', bg: '#d7ffb8' },
+  'Fraud Fighter': { color: '#1cb0f6', bg: '#ddf4ff' },
+  'Scam Spotter': { color: '#ffc800', bg: '#fff3cd' },
+  'Cautious Clicker': { color: '#ff9600', bg: '#fff0db' },
+  'Easy Target': { color: '#ff4b4b', bg: '#ffdfe0' },
 };
 
 export default function Results() {
+  const [, setLocation] = useLocation();
   const { score, bestStreak, answers, resetGame, startGame } = useGame();
   const { toast } = useToast();
   const shareCardRef = useRef<HTMLDivElement>(null);
@@ -37,8 +37,8 @@ export default function Results() {
   const normalizedScore = Math.min(100, Math.round((score / 850) * 100));
   const actualScore = Math.max(0, normalizedScore);
   const badge = getBadgeForScore(actualScore);
-  const correctCount = answers.filter(a => a.isCorrect).length;
-  const badgeColorClass = BADGE_COLOR[badge] ?? 'text-primary';
+  const correctCount = answers.filter((a: any) => a.isCorrect).length;
+  const badgeStyle = BADGE_STYLE[badge] ?? { color: '#1cb0f6', bg: '#ddf4ff' };
 
   const generateCoaching = useGenerateCoaching();
   const generateScenarios = useGenerateScenarios();
@@ -63,38 +63,31 @@ export default function Results() {
       const duration = 3 * 1000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
-
       const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-      const interval: any = setInterval(function() {
+      const interval = setInterval(function() {
         const timeLeft = animationEnd - Date.now();
-
         if (timeLeft <= 0) {
           return clearInterval(interval);
         }
-
         const particleCount = 50 * (timeLeft / duration);
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
         confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
       }, 250);
-
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [correctCount]);
 
   // Auto-call AI Weakness Coach
   useEffect(() => {
     if (answers.length > 0) {
-      const wrongAnswers = answers.filter(a => !a.isCorrect);
+      const wrongAnswers = answers.filter((a: any) => !a.isCorrect);
       if (wrongAnswers.length > 0) {
-        // Count occurrences of each category in wrong answers
         const categoryCounts: Record<string, number> = {};
-        wrongAnswers.forEach(a => {
+        wrongAnswers.forEach((a: any) => {
           const cat = a.scenario.category;
           categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         });
-
-        // Find the category with the most errors
         let maxCount = 0;
         let worstCat = '';
         Object.entries(categoryCounts).forEach(([cat, count]) => {
@@ -110,7 +103,7 @@ export default function Results() {
 
   useEffect(() => {
     if (answers.length > 0 && generateCoaching.isIdle) {
-      const wrongAnswers = answers.filter(a => !a.isCorrect).map(a => ({
+      const wrongAnswers = answers.filter((a: any) => !a.isCorrect).map((a: any) => ({
         type: a.scenario.type,
         redFlags: a.scenario.redFlags,
         correctAnswer: a.scenario.correctAnswer,
@@ -146,7 +139,7 @@ export default function Results() {
       await new Promise(r => setTimeout(r, 150));
       const dataUrl = await toPng(shareCardRef.current, {
         pixelRatio: 2,
-        backgroundColor: '#0B1020',
+        backgroundColor: '#fff',
         skipAutoScale: false,
       });
       const link = document.createElement('a');
@@ -154,7 +147,7 @@ export default function Results() {
       link.download = `ScamIQ-${badge.replace(/\s+/g, '-')}-${actualScore}.png`;
       link.click();
       toast({ title: 'Share card saved!' });
-    } catch (err) {
+    } catch (_err) {
       toast({ title: 'Export failed', description: 'Could not generate image.', variant: 'destructive' });
     } finally {
       setIsExporting(false);
@@ -163,7 +156,7 @@ export default function Results() {
 
   const playAIChallenges = () => {
     generateScenarios.mutate({ data: { count: 8 } }, {
-      onSuccess: (res) => { resetGame(); startGame(res.scenarios); },
+      onSuccess: (res: any) => { resetGame(); startGame(res.scenarios); },
       onError: () => {
         toast({ title: 'Failed to load AI scenarios', description: 'Falling back to standard challenges.', variant: 'destructive' });
         resetGame(); startGame();
@@ -172,86 +165,102 @@ export default function Results() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col items-center p-4 md:p-6 pb-24 overflow-x-hidden relative">
-      {/* Arcade Background Effects */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 arcade-grid opacity-20"></div>
-        <div className="absolute inset-0 scanlines opacity-10"></div>
-      </div>
-      
+    <div
+      className="min-h-[100dvh] flex flex-col items-center p-4 md:p-6 pb-24 overflow-x-hidden relative"
+      style={{ background: '#fff', fontFamily: "'Nunito', sans-serif" }}
+    >
       <ShareCard ref={shareCardRef} score={actualScore} badge={badge} correctCount={correctCount} />
 
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 relative z-10">
+      <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 relative">
         
         {/* ── Score Header ── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="arcade-card border-2 border-primary/30 rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden bg-card/80 backdrop-blur-sm"
+          className="rounded-3xl p-8 flex flex-col items-center text-center relative overflow-hidden"
+          style={{ background: badgeStyle.bg, border: `3px solid ${badgeStyle.color}20` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
-          
           <motion.div 
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="mb-4"
           >
-            <Shield className="w-16 h-16 text-primary drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]" />
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center"
+              style={{ background: badgeStyle.color, boxShadow: `0 8px 0 ${badgeStyle.color}cc` }}
+            >
+              <Shield className="w-10 h-10" style={{ color: '#fff' }} />
+            </div>
           </motion.div>
           
-          <h2 className="text-primary uppercase tracking-[0.3em] font-black text-xs mb-2 drop-shadow-neon">Your ScamIQ</h2>
+          <h2 className="text-sm font-black uppercase tracking-widest mb-2" style={{ color: '#afafaf' }}>
+            Your ScamIQ
+          </h2>
           
-          <div className="text-8xl md:text-9xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-br from-primary via-accent to-primary mb-6 drop-shadow-[0_0_30px_rgba(56,189,248,0.4)]">
-            {displayScore.toString().padStart(3, '0')}
+          <div
+            className="text-8xl md:text-9xl font-black mb-4"
+            style={{ color: badgeStyle.color }}
+          >
+            {displayScore}
           </div>
 
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 1.5, type: 'spring', stiffness: 180 }}
-            className="bg-primary/20 border-2 border-primary/40 px-8 py-4 rounded-2xl flex items-center gap-4 shadow-[0_0_20px_rgba(56,189,248,0.2)]"
+            className="px-6 py-3 rounded-2xl flex items-center gap-3"
+            style={{ background: `${badgeStyle.color}20`, border: `2px solid ${badgeStyle.color}40` }}
           >
-            <Trophy className={`w-8 h-8 ${badgeColorClass} filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]`} />
-            <span className={`text-2xl font-black uppercase tracking-tight drop-shadow-neon ${badgeColorClass}`}>{badge}</span>
+            <Trophy className="w-7 h-7" style={{ color: badgeStyle.color }} />
+            <span className="text-xl font-black uppercase" style={{ color: badgeStyle.color }}>{badge}</span>
           </motion.div>
         </motion.div>
 
         {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="arcade-card border border-success/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
-            <span className="text-success text-[10px] font-black uppercase tracking-wider mb-1">CORRECT</span>
-            <span className="text-3xl font-mono font-bold text-success drop-shadow-neon-success">{correctCount}/8</span>
-          </div>
-          <div className="arcade-card border border-destructive/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
-            <span className="text-destructive text-[10px] font-black uppercase tracking-wider mb-1">WRONG</span>
-            <span className="text-3xl font-mono font-bold text-destructive drop-shadow-neon-destructive">{8 - correctCount}</span>
-          </div>
-          <div className="arcade-card border border-warning/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
-            <span className="text-warning text-[10px] font-black uppercase tracking-wider mb-1">STREAK</span>
-            <span className="text-3xl font-mono font-bold text-warning flex items-center gap-1 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-              {bestStreak} <Flame className="w-5 h-5" />
-            </span>
-          </div>
-          <div className="arcade-card border border-accent/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
-            <span className="text-accent text-[10px] font-black uppercase tracking-wider mb-1">POINTS</span>
-            <span className="text-3xl font-mono font-bold text-accent drop-shadow-neon-accent">{score}</span>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: 'CORRECT', value: `${correctCount}/8`, color: '#58cc02' },
+            { label: 'WRONG', value: `${8 - correctCount}`, color: '#ff4b4b' },
+            { label: 'STREAK', value: bestStreak, color: '#ff9600', icon: true },
+            { label: 'POINTS', value: score, color: '#1cb0f6' },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-2xl p-4 flex flex-col items-center text-center"
+              style={{ background: '#f7f7f7', border: '2px solid #e5e5e5', borderBottomWidth: '4px' }}
+            >
+              <span className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: '#afafaf' }}>
+                {stat.label}
+              </span>
+              <span className="text-3xl font-black flex items-center gap-1" style={{ color: stat.color }}>
+                {stat.value}
+                {stat.icon && <Flame className="w-5 h-5" />}
+              </span>
+            </div>
+          ))}
         </div>
 
         {/* ── Round Breakdown ── */}
         {answers.length > 0 && (
-          <div className="arcade-card border border-border/50 rounded-2xl p-5 bg-card/40 backdrop-blur-sm">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Round Breakdown</p>
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: '#f7f7f7', border: '2px solid #e5e5e5', borderBottomWidth: '4px' }}
+          >
+            <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: '#afafaf' }}>
+              Round Breakdown
+            </p>
             <div className="flex gap-2 flex-wrap">
-              {answers.map((a, i) => (
+              {answers.map((a: any, i: number) => (
                 <div
                   key={i}
                   title={`Round ${i + 1}: ${a.scenario.type} — ${a.isCorrect ? 'Correct' : 'Wrong'}`}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all hover:scale-110 ${
-                    a.isCorrect
-                      ? 'bg-success/15 border-success/40 text-success shadow-[0_0_10px_rgba(52,211,153,0.2)]'
-                      : 'bg-destructive/15 border-destructive/40 text-destructive shadow-[0_0_10px_rgba(255,77,109,0.2)]'
-                  }`}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110"
+                  style={{
+                    background: a.isCorrect ? '#d7ffb8' : '#ffdfe0',
+                    border: `2px solid ${a.isCorrect ? '#58cc02' : '#ff4b4b'}`,
+                    borderBottomWidth: '3px',
+                    color: a.isCorrect ? '#58cc02' : '#ff4b4b',
+                  }}
                 >
                   {a.isCorrect
                     ? <CheckCircle2 className="w-5 h-5" />
@@ -263,35 +272,47 @@ export default function Results() {
         )}
 
         {/* ── AI Weakness Coach ── */}
-        <div className="arcade-card border-2 border-accent/30 rounded-[2rem] p-6 relative overflow-hidden bg-card/80 backdrop-blur-sm">
+        <div
+          className="rounded-3xl p-6 relative overflow-hidden"
+          style={{ background: '#ddf4ff', border: '2px solid #1cb0f640', borderBottomWidth: '4px' }}
+        >
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3 text-accent font-black uppercase tracking-wider">
-              <BrainCircuit className="w-6 h-6 drop-shadow-neon-accent" />
+            <div className="flex items-center gap-3 font-black uppercase tracking-wider" style={{ color: '#1cb0f6' }}>
+              <BrainCircuit className="w-6 h-6" />
               <h3 className="text-sm">AI Weakness Coach</h3>
             </div>
             {biggestWeakness && (
-              <div className="bg-destructive/20 border border-destructive/40 px-3 py-1 rounded-lg text-[10px] font-black text-destructive uppercase tracking-widest animate-pulse">
+              <div
+                className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+                style={{ background: '#ffdfe0', color: '#ff4b4b' }}
+              >
                 CRITICAL: {biggestWeakness}
               </div>
             )}
           </div>
           
           {correctCount === 8 ? (
-            <p className="text-sm text-foreground leading-relaxed">Flawless! You spotted every scam perfectly. You are a true Human Firewall. Challenge your friends to see if they can match your score.</p>
+            <p className="text-sm leading-relaxed" style={{ color: '#3c3c3c' }}>
+              Flawless! You spotted every scam perfectly. You are a true Human Firewall. Challenge your friends to see if they can match your score.
+            </p>
           ) : generateCoaching.isPending ? (
             <div className="flex flex-col gap-3 animate-pulse">
-              <div className="h-4 bg-white/5 rounded w-3/4" />
-              <div className="h-4 bg-white/5 rounded w-full" />
-              <div className="h-4 bg-white/5 rounded w-5/6" />
+              <div className="h-4 rounded w-3/4" style={{ background: '#b8e6ff' }} />
+              <div className="h-4 rounded w-full" style={{ background: '#b8e6ff' }} />
+              <div className="h-4 rounded w-5/6" style={{ background: '#b8e6ff' }} />
             </div>
           ) : generateCoaching.data ? (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-foreground leading-relaxed">{generateCoaching.data.message}</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#3c3c3c' }}>{generateCoaching.data.message}</p>
               {generateCoaching.data.tips?.length > 0 && (
                 <ul className="space-y-3">
-                  {generateCoaching.data.tips.map((tip, i) => (
-                    <li key={i} className="flex items-start gap-3 text-xs text-muted-foreground bg-white/5 p-3 rounded-xl border border-white/10">
-                      <span className="text-accent font-black shrink-0">{">>"}</span>
+                  {generateCoaching.data.tips.map((tip: string, i: number) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 text-xs p-3 rounded-xl"
+                      style={{ background: '#b8e6ff40', border: '1px solid #1cb0f620', color: '#3c3c3c' }}
+                    >
+                      <span className="font-black shrink-0" style={{ color: '#1cb0f6' }}>{">>"}</span>
                       {tip}
                     </li>
                   ))}
@@ -299,48 +320,71 @@ export default function Results() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">Systems online. Awaiting data stream for deep analysis...</p>
+            <p className="text-xs" style={{ color: '#777' }}>Systems online. Awaiting data stream for deep analysis...</p>
           )}
         </div>
 
         {/* ── Share Card Preview ── */}
-        <div className="arcade-card border border-border/50 rounded-2xl p-6 bg-card/40 backdrop-blur-sm">
-          <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Share Scorecard</p>
+        <div
+          className="rounded-2xl p-6"
+          style={{ background: '#f7f7f7', border: '2px solid #e5e5e5', borderBottomWidth: '4px' }}
+        >
+          <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: '#afafaf' }}>
+            Share Scorecard
+          </p>
           
-          <div className="rounded-2xl overflow-hidden border-2 border-primary/30 mb-6 shadow-2xl"
-            style={{ background: 'linear-gradient(145deg, #0B1020, #0F172A)', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-            <div className="absolute inset-0 arcade-grid opacity-10 pointer-events-none"></div>
-            <div className="relative z-10">
-              <div className="font-heading font-black text-xl mb-1" style={{ color: '#F8FAFC' }}>
-                Scam<span style={{ color: '#38BDF8' }} className="drop-shadow-neon">IQ</span>
+          <div
+            className="rounded-2xl overflow-hidden mb-6"
+            style={{
+              background: `linear-gradient(135deg, ${badgeStyle.color}, ${badgeStyle.color}cc)`,
+              padding: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div className="font-black text-xl mb-1" style={{ color: '#fff' }}>
+                Scam<span style={{ color: '#ffffff90' }}>IQ</span>
               </div>
-              <div className="font-mono font-black text-6xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2">
+              <div className="font-black text-6xl mb-2" style={{ color: '#fff' }}>
                 {actualScore}
               </div>
-              <div className={`text-sm font-black uppercase tracking-wider ${badgeColorClass}`}>{badge}</div>
+              <div className="text-sm font-black uppercase tracking-wider" style={{ color: '#ffffff90' }}>
+                {badge}
+              </div>
             </div>
-            <div className="text-right relative z-10">
-              <div className="text-xs text-muted-foreground/60 mb-2 font-mono">SCAMIQ.APP</div>
-              <div className="text-sm font-bold text-white/90">{correctCount}/8 CORRECT</div>
+            <div className="text-right">
+              <div className="text-xs mb-2 font-bold" style={{ color: '#ffffff60' }}>SCAMIQ.APP</div>
+              <div className="text-sm font-bold" style={{ color: '#fff' }}>{correctCount}/8 CORRECT</div>
               <div className="mt-4 flex justify-end">
-                <Shield className="w-8 h-8 text-primary/40" />
+                <Shield className="w-8 h-8" style={{ color: '#ffffff40' }} />
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button onClick={handleShare} className="flex-1 min-w-0 h-12 rounded-xl bg-secondary border-2 border-border text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all active:translate-y-1">
-              <Share2 className="w-4 h-4 text-primary" /> Share
+            <button
+              onClick={handleShare}
+              className="duo-btn flex-1 min-w-0 py-3 text-sm"
+              style={{ color: '#1cb0f6', borderColor: '#1cb0f6', borderBottomWidth: '4px', background: '#fff' }}
+            >
+              <Share2 className="w-4 h-4 mr-2" /> Share
             </button>
-            <button onClick={handleCopyLink} className="flex-1 min-w-0 h-12 rounded-xl bg-secondary border-2 border-border text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all active:translate-y-1">
-              <Copy className="w-4 h-4" /> Link
+            <button
+              onClick={handleCopyLink}
+              className="duo-btn flex-1 min-w-0 py-3 text-sm"
+              style={{ color: '#afafaf', borderColor: '#e5e5e5', borderBottomWidth: '4px', background: '#fff' }}
+            >
+              <Copy className="w-4 h-4 mr-2" /> Link
             </button>
             <button
               onClick={handleDownloadImage}
               disabled={isExporting}
-              className="w-full h-12 rounded-xl bg-primary/10 border-2 border-primary/30 text-primary text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary/20 transition-all disabled:opacity-60 active:translate-y-1"
+              className="duo-btn w-full py-3 text-sm"
+              style={{ color: '#58cc02', borderColor: '#58cc02', borderBottomWidth: '4px', background: '#fff' }}
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 mr-2" />
               {isExporting ? 'Generating...' : 'Download (PNG + QR)'}
             </button>
           </div>
@@ -348,26 +392,26 @@ export default function Results() {
 
         {/* ── Actions ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <Button 
+          <button
             onClick={() => { resetGame(); startGame(); }}
-            size="lg" 
-            className="h-16 text-lg font-black bg-card hover:bg-secondary text-foreground border-2 border-border rounded-2xl border-b-8 active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest"
+            className="duo-btn w-full py-4 text-base"
+            style={{ background: '#fff', color: '#1cb0f6', borderColor: '#1cb0f6', borderBottomWidth: '6px' }}
           >
-            <Play className="w-6 h-6 mr-3" /> Replay
-          </Button>
+            <Play className="w-5 h-5 mr-2" /> REPLAY
+          </button>
           
-          <Button 
+          <button
             onClick={playAIChallenges}
-            size="lg" 
             disabled={generateScenarios.isPending}
-            className="h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl border-b-8 border-primary-foreground/20 active:border-b-0 active:translate-y-2 transition-all shadow-[0_10px_30px_rgba(56,189,248,0.4)] uppercase tracking-widest"
+            className="duo-btn w-full py-4 text-base"
+            style={{ background: '#58cc02', color: '#fff', borderColor: '#58a700', borderBottomWidth: '6px' }}
           >
             {generateScenarios.isPending ? (
-              <span className="flex items-center"><Sparkles className="w-6 h-6 mr-3 animate-spin" /> Analyzing...</span>
+              <span className="flex items-center justify-center"><Sparkles className="w-5 h-5 mr-2 animate-spin" /> Analyzing...</span>
             ) : (
-              <span className="flex items-center"><Sparkles className="w-6 h-6 mr-3" /> AI Challenge</span>
+              <span className="flex items-center justify-center"><Sparkles className="w-5 h-5 mr-2" /> AI CHALLENGE</span>
             )}
-          </Button>
+          </button>
         </div>
 
       </div>
