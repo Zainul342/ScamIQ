@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ScamIQ API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: ai
+    description: AI-powered scenario generation and coaching
 paths:
   /healthz:
     get:
@@ -24,6 +26,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /ai/scenarios:
+    post:
+      operationId: generateScenarios
+      tags: [ai]
+      summary: Generate AI scam scenarios
+      description: Uses LLM to generate a fresh batch of scam scenarios for the AI Challenge Pack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateScenariosRequest"
+      responses:
+        "200":
+          description: Successfully generated scenarios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateScenariosResponse"
+        "500":
+          description: Generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /ai/coach:
+    post:
+      operationId: generateCoaching
+      tags: [ai]
+      summary: Generate AI weakness coaching
+      description: Uses LLM to generate personalized feedback based on the user's wrong answers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCoachingRequest"
+      responses:
+        "200":
+          description: Successfully generated coaching message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateCoachingResponse"
+        "500":
+          description: Generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +85,121 @@ components:
           type: string
       required:
         - status
-
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [sms, email, dm, marketplace, login, ai_voice]
+        category:
+          type: string
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        sender:
+          type: string
+        content:
+          type: string
+        correctAnswer:
+          type: string
+          enum: [scam, suspicious, safe]
+        redFlags:
+          type: array
+          items:
+            type: string
+        explanation:
+          type: string
+        safetyTip:
+          type: string
+      required:
+        - id
+        - type
+        - category
+        - difficulty
+        - sender
+        - content
+        - correctAnswer
+        - redFlags
+        - explanation
+        - safetyTip
+    GenerateScenariosRequest:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 1
+          maximum: 30
+          default: 8
+      required:
+        - count
+    GenerateScenariosResponse:
+      type: object
+      properties:
+        scenarios:
+          type: array
+          items:
+            $ref: "#/components/schemas/Scenario"
+        source:
+          type: string
+          enum: [ai, fallback]
+      required:
+        - scenarios
+        - source
+    WrongAnswer:
+      type: object
+      properties:
+        type:
+          type: string
+        redFlags:
+          type: array
+          items:
+            type: string
+        correctAnswer:
+          type: string
+        userAnswer:
+          type: string
+      required:
+        - type
+        - redFlags
+        - correctAnswer
+        - userAnswer
+    GenerateCoachingRequest:
+      type: object
+      properties:
+        wrongAnswers:
+          type: array
+          items:
+            $ref: "#/components/schemas/WrongAnswer"
+        score:
+          type: integer
+        badge:
+          type: string
+      required:
+        - wrongAnswers
+        - score
+        - badge
+    GenerateCoachingResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        tips:
+          type: array
+          items:
+            type: string
+        source:
+          type: string
+          enum: [ai, fallback]
+      required:
+        - message
+        - tips
+        - source
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

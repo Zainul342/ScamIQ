@@ -1,2 +1,14 @@
 export * from "./generated/api";
-export * from "./generated/types";
+export type {
+  ErrorResponse,
+  GenerateCoachingRequest,
+  GenerateCoachingResponseSource,
+  GenerateScenariosRequest,
+  GenerateScenariosResponseSource,
+  HealthStatus,
+  Scenario,
+  ScenarioCorrectAnswer,
+  ScenarioDifficulty,
+  ScenarioType,
+  WrongAnswer,
+} from "./generated/types";

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "ScamIQ"
+version = "1.0.0"
+id = "artifacts/scam-iq"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18719
+
+[services.development]
+run = "pnpm --filter @workspace/scam-iq run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/scam-iq", "run", "build" ]
+publicDir = "artifacts/scam-iq/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18719"
+BASE_PATH = "/"
