@@ -1,73 +1,283 @@
-import { Link } from "wouter";
-import { Shield, Target, Trophy, Share2, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, CheckCircle2, XCircle, ChevronRight, Flame, Users } from "lucide-react";
+
+const DEMO_SCENARIO = {
+  type: "sms",
+  sender: "USPS Delivery",
+  senderNumber: "+1 (800) 555-0199",
+  message:
+    "USPS: Your package cannot be delivered due to an incomplete address. Update your details within 24 hrs or the package will be returned: https://usps-delivery-update.net/track",
+  correctAnswer: "scam",
+  redFlags: ["Fake domain (not usps.com)", "24-hr pressure tactic", "Unsolicited link"],
+  explanation: "Real USPS never sends links via SMS. The domain 'usps-delivery-update.net' is a phishing site.",
+};
+
+type AnswerState = "idle" | "correct" | "wrong";
 
 export default function Home() {
+  const [, setLocation] = useLocation();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [answerState, setAnswerState] = useState<AnswerState>("idle");
+
+  function handleAnswer(answer: string) {
+    if (selected) return;
+    setSelected(answer);
+    setAnswerState(answer === DEMO_SCENARIO.correctAnswer ? "correct" : "wrong");
+  }
+
+  function handleStart() {
+    setLocation("/game");
+  }
+
+  const answered = answerState !== "idle";
+
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center relative overflow-hidden bg-background">
-      {/* Background ambient glow */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-background overflow-hidden relative px-4 py-8">
+      {/* ambient glows */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/10 blur-[120px] rounded-full" />
+      <div className="pointer-events-none absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-accent/8 blur-[120px] rounded-full" />
 
-      <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-6 z-10">
-        
-        <div className="mb-12 flex flex-col items-center text-center">
-          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-secondary mb-6 border border-border shadow-2xl relative">
-            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-2xl"></div>
-            <Shield className="w-10 h-10 text-primary relative z-10" />
+      <div className="w-full max-w-md mx-auto flex flex-col gap-5 z-10">
+
+        {/* ── TOP BAR ── */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            <span className="font-heading font-black text-xl tracking-tight">
+              Scam<span className="text-primary">IQ</span>
+            </span>
           </div>
-          
-          <h1 className="text-6xl md:text-8xl font-heading font-black tracking-tight text-foreground mb-4">
-            Scam<span className="text-transparent bg-clip-text bg-gradient-to-br from-primary to-accent">IQ</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card border border-border rounded-full px-3 py-1.5">
+            <Users className="w-3.5 h-3.5 text-success" />
+            <span>12,847 tested today</span>
+          </div>
+        </div>
+
+        {/* ── HOOK LINE ── */}
+        <div className="text-center pt-1 pb-2">
+          <h1 className="font-heading font-black text-4xl md:text-5xl leading-tight text-foreground mb-2">
+            Can you spot<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+              the scam?
+            </span>
           </h1>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-xl font-medium mb-12">
-            Can you spot the scam before it spots you?
+          <p className="text-muted-foreground text-base font-medium">
+            <span className="text-warning font-semibold">73% of people</span> fail this first test.
           </p>
+        </div>
 
-          <Link href="/game" className="w-full sm:w-auto" data-testid="link-play-now">
-            <Button size="lg" className="w-full sm:w-auto text-xl h-16 px-12 rounded-full font-bold shadow-[0_0_40px_-10px_rgba(56,189,248,0.5)] hover:shadow-[0_0_60px_-10px_rgba(56,189,248,0.7)] transition-all">
-              <Play className="w-6 h-6 mr-2 fill-current" />
-              Play Now
-            </Button>
-          </Link>
-          
-          <div className="mt-8 px-6 py-2 rounded-full bg-secondary/50 border border-border text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-            Join 10,000+ scam spotters
+        {/* ── ROUND INDICATOR ── */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            Round 1 of 8
+          </span>
+          <div className="flex-1 h-2 bg-card rounded-full border border-border overflow-hidden">
+            <div className="h-full w-[12.5%] bg-primary rounded-full" />
+          </div>
+          <div className="flex items-center gap-1 text-xs font-semibold text-warning">
+            <Flame className="w-3.5 h-3.5" />
+            <span>0</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">
-          <div className="bg-card p-6 rounded-2xl border border-card-border flex flex-col items-center text-center gap-4 hover-elevate">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Target className="w-6 h-6 text-primary" />
+        {/* ── SMS SCENARIO CARD ── */}
+        <motion.div
+          animate={
+            answerState === "wrong"
+              ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
+              : {}
+          }
+          transition={{ duration: 0.4 }}
+          className={`rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
+            answerState === "correct"
+              ? "border-success shadow-[0_0_32px_-4px_rgba(52,211,153,0.5)]"
+              : answerState === "wrong"
+              ? "border-danger shadow-[0_0_32px_-4px_rgba(255,77,109,0.4)]"
+              : "border-border"
+          }`}
+        >
+          {/* Card header */}
+          <div className="bg-card px-4 py-3 border-b border-border flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">SMS Message</p>
+              <p className="text-sm font-semibold text-foreground">{DEMO_SCENARIO.sender}</p>
+              <p className="text-xs text-muted-foreground">{DEMO_SCENARIO.senderNumber}</p>
             </div>
-            <h3 className="font-heading font-bold text-lg">Test Your Instincts</h3>
-            <p className="text-sm text-muted-foreground">8 rapid-fire rounds of real-world phishing attempts.</p>
-          </div>
-          
-          <div className="bg-card p-6 rounded-2xl border border-card-border flex flex-col items-center text-center gap-4 hover-elevate">
-            <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
-              <Shield className="w-6 h-6 text-warning" />
+            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground">
+              U
             </div>
-            <h3 className="font-heading font-bold text-lg">Learn Red Flags</h3>
-            <p className="text-sm text-muted-foreground">Instant feedback and actionable tips to stay safe online.</p>
           </div>
-          
-          <div className="bg-card p-6 rounded-2xl border border-card-border flex flex-col items-center text-center gap-4 hover-elevate">
-            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
-              <Share2 className="w-6 h-6 text-accent" />
+
+          {/* SMS bubble */}
+          <div className="bg-background px-4 py-4">
+            <div className="bg-[#1E2A3A] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] relative">
+              <p className="text-sm text-foreground leading-relaxed">{DEMO_SCENARIO.message}</p>
+              <p className="text-right text-xs text-muted-foreground mt-1">10:42 AM</p>
             </div>
-            <h3 className="font-heading font-bold text-lg">Share Your Score</h3>
-            <p className="text-sm text-muted-foreground">Prove your cybersecurity savvy to friends and coworkers.</p>
           </div>
-        </div>
-      </main>
-      
-      <footer className="w-full py-6 text-center text-muted-foreground text-sm border-t border-border z-10 bg-background/80 backdrop-blur-sm">
-        Built with React • Stay Vigilant
-      </footer>
+
+          {/* ── FEEDBACK OVERLAY ── */}
+          <AnimatePresence>
+            {answered && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mx-4 mb-4 rounded-xl p-4 border ${
+                  answerState === "correct"
+                    ? "bg-success/10 border-success/30"
+                    : "bg-danger/10 border-danger/30"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  {answerState === "correct" ? (
+                    <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-danger flex-shrink-0" />
+                  )}
+                  <span
+                    className={`font-heading font-bold text-base ${
+                      answerState === "correct" ? "text-success" : "text-danger"
+                    }`}
+                  >
+                    {answerState === "correct" ? "Correct!" : "This is a Scam"}
+                  </span>
+                  {answerState === "correct" && (
+                    <span className="ml-auto text-xs font-mono font-bold text-success bg-success/20 px-2 py-0.5 rounded-full">
+                      +100 pts
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {DEMO_SCENARIO.redFlags.map((flag) => (
+                    <span
+                      key={flag}
+                      className="text-xs px-2.5 py-1 rounded-full bg-danger/20 text-danger border border-danger/30 font-medium"
+                    >
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {DEMO_SCENARIO.explanation}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* ── ANSWER BUTTONS or CTA ── */}
+        <AnimatePresence mode="wait">
+          {!answered ? (
+            <motion.div
+              key="answers"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex flex-col gap-3"
+            >
+              <p className="text-center text-sm text-muted-foreground font-medium">
+                What is this message?
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAnswer("safe")}
+                  data-testid="btn-safe"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-success/30 hover:border-success hover:bg-success/10 transition-all min-h-[70px] font-bold text-success text-sm"
+                >
+                  <Shield className="w-5 h-5" />
+                  Safe
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAnswer("suspicious")}
+                  data-testid="btn-suspicious"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-warning/30 hover:border-warning hover:bg-warning/10 transition-all min-h-[70px] font-bold text-warning text-sm"
+                >
+                  <span className="text-xl leading-none">?</span>
+                  Suspicious
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAnswer("scam")}
+                  data-testid="btn-scam"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-danger/30 hover:border-danger hover:bg-danger/10 transition-all min-h-[70px] font-bold text-danger text-sm"
+                >
+                  <XCircle className="w-5 h-5" />
+                  Scam
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="cta"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col gap-3"
+            >
+              {/* Mini score preview */}
+              <div className="flex items-center justify-between bg-card rounded-xl border border-border px-4 py-3">
+                <div className="text-center flex-1">
+                  <p className="text-xs text-muted-foreground font-medium">Score</p>
+                  <p className="text-xl font-mono font-black text-primary">
+                    {answerState === "correct" ? "100" : "0"}
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="text-center flex-1">
+                  <p className="text-xs text-muted-foreground font-medium">Round</p>
+                  <p className="text-xl font-mono font-black text-foreground">1/8</p>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="text-center flex-1">
+                  <p className="text-xs text-muted-foreground font-medium">ScamIQ</p>
+                  <p className="text-xl font-mono font-black text-accent">—</p>
+                </div>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={handleStart}
+                data-testid="btn-start-test"
+                className="w-full h-16 rounded-2xl bg-primary text-background font-heading font-black text-xl flex items-center justify-center gap-3 shadow-[0_0_40px_-8px_rgba(56,189,248,0.6)] hover:shadow-[0_0_60px_-8px_rgba(56,189,248,0.8)] hover:brightness-110 transition-all"
+              >
+                Continue — Round 2
+                <ChevronRight className="w-6 h-6" />
+              </motion.button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                7 rounds left • Takes under 3 minutes
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── COLD START CTA (before answering) ── */}
+        {!answered && (
+          <div className="flex flex-col items-center gap-3 pt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-8 h-px bg-border" />
+              or skip the preview
+              <span className="w-8 h-px bg-border" />
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleStart}
+              data-testid="btn-start-full"
+              className="w-full h-14 rounded-2xl border-2 border-primary/40 text-primary font-heading font-bold text-lg flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+            >
+              Start Full Test — 8 Rounds
+              <ChevronRight className="w-5 h-5" />
+            </motion.button>
+            <p className="text-xs text-muted-foreground">
+              Can you get <span className="text-warning font-semibold">8/8?</span> Most people don't.
+            </p>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
