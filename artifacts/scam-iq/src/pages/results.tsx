@@ -291,7 +291,7 @@ export default function Results() {
                 <ul className="space-y-3">
                   {generateCoaching.data.tips.map((tip, i) => (
                     <li key={i} className="flex items-start gap-3 text-xs text-muted-foreground bg-white/5 p-3 rounded-xl border border-white/10">
-                      <span className="text-accent font-black shrink-0">>></span>
+                      <span className="text-accent font-black shrink-0">{">>"}</span>
                       {tip}
                     </li>
                   ))}
