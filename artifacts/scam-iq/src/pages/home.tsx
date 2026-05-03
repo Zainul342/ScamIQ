@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, CheckCircle2, XCircle, ChevronRight, Flame, Users } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, ChevronRight, Flame, Users, AlertTriangle, TrendingUp } from "lucide-react";
 
 const DEMO_SCENARIO = {
   type: "sms",
@@ -11,24 +11,48 @@ const DEMO_SCENARIO = {
     "USPS: Your package cannot be delivered due to an incomplete address. Update your details within 24 hrs or the package will be returned: https://usps-delivery-update.net/track",
   correctAnswer: "scam",
   redFlags: ["Fake domain (not usps.com)", "24-hr pressure tactic", "Unsolicited link"],
-  explanation: "Real USPS never sends links via SMS. The domain 'usps-delivery-update.net' is a phishing site.",
+  explanation: "Real USPS never sends links via SMS. The domain 'usps-delivery-update.net' is a phishing site designed to steal your info.",
+};
+
+// Global Threat Level data — simulated weekly feed
+const THREAT_DATA = {
+  level: "HIGH",
+  levelColor: "#FF4D6D",
+  topThreat: "SMS Delivery Fraud",
+  topThreatChange: "+34% this week",
+  topThreatIcon: "sms",
+  activeScams: [
+    { label: "SMS Delivery Scams", bar: 88, color: "#FF4D6D" },
+    { label: "AI Voice Impersonation", bar: 74, color: "#FBBF24" },
+    { label: "Fake Login Pages", bar: 61, color: "#FB923C" },
+  ],
 };
 
 type AnswerState = "idle" | "correct" | "wrong";
+
+// Simulated live counter — starts near a base and ticks up slowly
+function useLiveCounter(base: number) {
+  const [count, setCount] = useState(base);
+  const ref = useRef(base);
+
+  useEffect(() => {
+    const tick = () => {
+      const increment = Math.floor(Math.random() * 3) + 1;
+      ref.current += increment;
+      setCount(ref.current);
+    };
+    const id = setInterval(tick, 3500 + Math.random() * 2000);
+    return () => clearInterval(id);
+  }, []);
+
+  return count;
+}
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const [selected, setSelected] = useState<string | null>(null);
   const [answerState, setAnswerState] = useState<AnswerState>("idle");
-  const [liveCount, setLiveCount] = useState(12847);
-
-  // Simulate live count pulse
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveCount(prev => prev + Math.floor(Math.random() * 2));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const liveCount = useLiveCounter(12847);
 
   function handleAnswer(answer: string) {
     if (selected) return;
@@ -48,34 +72,78 @@ export default function Home() {
       <div className="absolute inset-0 arcade-grid opacity-20 pointer-events-none" />
       
       {/* ambient glows */}
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/10 blur-[120px] rounded-full" />
-      <div className="pointer-events-none absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-accent/8 blur-[120px] rounded-full" />
+      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[280px] bg-primary/8 blur-[120px] rounded-full" />
+      <div className="pointer-events-none fixed bottom-0 right-1/4 w-[400px] h-[280px] bg-danger/5 blur-[120px] rounded-full" />
 
-      <div className="w-full max-w-md mx-auto flex flex-col gap-5 z-10">
+      <div className="w-full max-w-md mx-auto flex flex-col gap-4 z-10">
 
         {/* ── TOP BAR ── */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
             <span className="font-heading font-black text-xl tracking-tight">
               Scam<span className="text-primary glow-text-primary">IQ</span>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card/50 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 animate-pulse-soft">
+          <motion.div
+            key={liveCount}
+            initial={{ scale: 1.15, color: "#34D399" }}
+            animate={{ scale: 1, color: "#94A3B8" }}
+            transition={{ duration: 0.4 }}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card/50 backdrop-blur-sm border border-border rounded-full px-3 py-1.5"
+          >
             <Users className="w-3.5 h-3.5 text-success" />
             <span>{liveCount.toLocaleString()} tested today</span>
-          </div>
+          </motion.div>
         </div>
 
+        {/* ── GLOBAL THREAT LEVEL BANNER ── */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-xl border border-danger/25 bg-danger/8 px-4 py-3"
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-danger" />
+              <span className="text-xs font-black uppercase tracking-widest text-danger">
+                Global Threat Level: {THREAT_DATA.level}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-warning font-semibold">
+              <TrendingUp className="w-3 h-3" />
+              <span>{THREAT_DATA.topThreatChange}</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {THREAT_DATA.activeScams.map((scam) => (
+              <div key={scam.label} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-36 shrink-0">{scam.label}</span>
+                <div className="flex-1 h-1.5 bg-card rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${scam.bar}%` }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="h-full rounded-full"
+                    style={{ background: scam.color }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-muted-foreground w-8 text-right">{scam.bar}%</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* ── HOOK LINE ── */}
-        <div className="text-center pt-1 pb-2">
+        <div className="text-center py-1">
           <h1 className="font-heading font-black text-4xl md:text-5xl leading-tight text-foreground mb-2">
             Can you spot<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent glow-text-primary">
               the scam?
             </span>
           </h1>
-          <p className="text-muted-foreground text-base font-medium">
+          <p className="text-muted-foreground text-sm font-medium">
             <span className="text-warning font-semibold">73% of people</span> fail this first test.
           </p>
         </div>
@@ -96,11 +164,7 @@ export default function Home() {
 
         {/* ── SMS SCENARIO CARD ── */}
         <motion.div
-          animate={
-            answerState === "wrong"
-              ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
-              : {}
-          }
+          animate={answerState === "wrong" ? { x: [0, -10, 10, -8, 8, -4, 4, 0] } : {}}
           transition={{ duration: 0.4 }}
           className={`rounded-2xl border-2 overflow-hidden transition-all duration-300 arcade-card ${
             answerState === "correct"
@@ -131,7 +195,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── FEEDBACK OVERLAY ── */}
+          {/* FEEDBACK OVERLAY */}
           <AnimatePresence>
             {answered && (
               <motion.div
@@ -157,9 +221,7 @@ export default function Home() {
                     {answerState === "correct" ? "Correct!" : "This is a Scam"}
                   </span>
                   {answerState === "correct" && (
-                    <span className="ml-auto text-xs font-mono font-bold text-success bg-success/20 px-2 py-0.5 rounded-full">
-                      +100 pts
-                    </span>
+                    <span className="ml-auto text-xs font-mono font-bold text-success bg-success/20 px-2 py-0.5 rounded-full">+100 pts</span>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -172,15 +234,13 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {DEMO_SCENARIO.explanation}
-                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{DEMO_SCENARIO.explanation}</p>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* ── ANSWER BUTTONS or CTA ── */}
+        {/* ── ANSWER BUTTONS / POST-ANSWER CTA ── */}
         <AnimatePresence mode="wait">
           {!answered ? (
             <motion.div
@@ -190,9 +250,7 @@ export default function Home() {
               exit={{ opacity: 0, y: -8 }}
               className="flex flex-col gap-3"
             >
-              <p className="text-center text-sm text-muted-foreground font-medium">
-                What is this message?
-              </p>
+              <p className="text-center text-sm text-muted-foreground font-medium">What is this message?</p>
               <div className="grid grid-cols-3 gap-3">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -209,7 +267,7 @@ export default function Home() {
                   id="btn-suspicious"
                   className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-warning/30 hover:border-warning hover:bg-warning/10 transition-all min-h-[70px] font-bold text-warning text-sm shadow-[0_4px_0_0_rgba(251,191,36,0.2)] active:translate-y-1 active:shadow-none"
                 >
-                  <span className="text-xl leading-none">?</span>
+                  <span className="text-xl leading-none font-black">?</span>
                   Suspicious
                 </motion.button>
                 <motion.button
@@ -246,7 +304,7 @@ export default function Home() {
                 <div className="w-px h-8 bg-border" />
                 <div className="text-center flex-1">
                   <p className="text-xs text-muted-foreground font-medium">ScamIQ</p>
-                  <p className="text-xl font-mono font-black text-accent">—</p>
+                  <p className="text-xl font-mono font-black text-accent">?</p>
                 </div>
               </div>
 
@@ -259,17 +317,14 @@ export default function Home() {
                 Continue — Round 2
                 <ChevronRight className="w-6 h-6" />
               </motion.button>
-
-              <p className="text-center text-xs text-muted-foreground">
-                7 rounds left • Takes under 3 minutes
-              </p>
+              <p className="text-center text-xs text-muted-foreground">7 rounds left · under 3 minutes</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── COLD START CTA (before answering) ── */}
+        {/* ── SKIP CTA ── */}
         {!answered && (
-          <div className="flex flex-col items-center gap-3 pt-1">
+          <div className="flex flex-col items-center gap-3 pb-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="w-8 h-px bg-border" />
               or skip the preview
@@ -289,11 +344,6 @@ export default function Home() {
             </p>
           </div>
         )}
-
-      </div>
-    </div>
-  );
-}
 
       </div>
     </div>

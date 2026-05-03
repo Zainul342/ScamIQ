@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
-import html2canvas from 'html2canvas';
-import { Shield, Trophy, Share2, Download, Copy, Play, Sparkles, BrainCircuit, Flame } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import { Shield, Trophy, Share2, Download, Copy, Play, Sparkles, BrainCircuit, Flame, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useGame } from '../lib/game-store';
@@ -17,6 +17,14 @@ const getBadgeForScore = (score: number) => {
   return 'Easy Target';
 };
 
+const BADGE_COLOR: Record<string, string> = {
+  'Human Firewall': 'text-success',
+  'Fraud Fighter': 'text-primary',
+  'Scam Spotter': 'text-warning',
+  'Cautious Clicker': 'text-orange-400',
+  'Easy Target': 'text-danger',
+};
+
 export default function Results() {
   const { score, bestStreak, answers, resetGame, startGame } = useGame();
   const { toast } = useToast();
@@ -25,31 +33,30 @@ export default function Results() {
   const [isExporting, setIsExporting] = useState(false);
   const [biggestWeakness, setBiggestWeakness] = useState<string | null>(null);
 
-  const maxPossibleScore = 800 + (Math.floor(8 / 3) * 25);
-  const normalizedScore = Math.min(100, Math.round((score / 850) * 100)); // normalized roughly
+  const normalizedScore = Math.min(100, Math.round((score / 850) * 100));
   const actualScore = Math.max(0, normalizedScore);
   const badge = getBadgeForScore(actualScore);
   const correctCount = answers.filter(a => a.isCorrect).length;
+  const badgeColorClass = BADGE_COLOR[badge] ?? 'text-primary';
 
   const generateCoaching = useGenerateCoaching();
   const generateScenarios = useGenerateScenarios();
 
+  // Count-up animation
   useEffect(() => {
-    // Count up animation
     const duration = 1500;
     const steps = 60;
     const stepTime = duration / steps;
     let currentStep = 0;
-
     const timer = setInterval(() => {
       currentStep++;
       setDisplayScore(Math.round((actualScore * currentStep) / steps));
       if (currentStep >= steps) clearInterval(timer);
     }, stepTime);
-
     return () => clearInterval(timer);
   }, [actualScore]);
 
+  // Auto-call AI Weakness Coach
   useEffect(() => {
     if (answers.length > 0) {
       const wrongAnswers = answers.filter(a => !a.isCorrect);
@@ -81,78 +88,48 @@ export default function Results() {
         type: a.scenario.type,
         redFlags: a.scenario.redFlags,
         correctAnswer: a.scenario.correctAnswer,
-        userAnswer: a.answer
+        userAnswer: a.answer,
       }));
-      
       if (wrongAnswers.length > 0) {
-        generateCoaching.mutate({
-          data: {
-            wrongAnswers,
-            score: actualScore,
-            badge
-          }
-        });
+        generateCoaching.mutate({ data: { wrongAnswers, score: actualScore, badge } });
       }
     }
   }, [answers, actualScore, badge, generateCoaching]);
 
   const handleShare = async () => {
-    const text = `I scored ${actualScore} on ScamIQ and earned the "${badge}" badge! 🛡️ Can you spot the scam before it spots you? Play now at scamiq.app`;
-    
+    const text = `I scored ${actualScore} on ScamIQ and earned the "${badge}" badge! Can you spot the scam before it spots you? Play at ${window.location.origin}`;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'My ScamIQ Score',
-          text: text,
-          url: 'https://scamiq.app',
-        });
+        await navigator.share({ title: 'My ScamIQ Score', text, url: window.location.origin });
         return;
-      } catch (err) {
-        console.log('Error sharing', err);
-      }
+      } catch (_) { /* fallthrough */ }
     }
-    
-    // Fallback to twitter
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText('https://scamiq.app');
-    toast({
-      title: "Link copied!",
-      description: "Challenge your friends to beat your score.",
-    });
+    navigator.clipboard.writeText(window.location.origin);
+    toast({ title: 'Link copied!', description: 'Challenge your friends to beat your score.' });
   };
 
   const handleDownloadImage = async () => {
     if (!shareCardRef.current || isExporting) return;
     setIsExporting(true);
-    
+    toast({ title: 'Generating share card...' });
     try {
-      toast({ title: "Generating image..." });
-      // Short delay to ensure rendering
-      await new Promise(r => setTimeout(r, 100));
-      
-      const canvas = await html2canvas(shareCardRef.current, {
-        scale: 2,
+      await new Promise(r => setTimeout(r, 150));
+      const dataUrl = await toPng(shareCardRef.current, {
+        pixelRatio: 2,
         backgroundColor: '#0B1020',
-        logging: false,
+        skipAutoScale: false,
       });
-      
-      const image = canvas.toDataURL("image/png");
       const link = document.createElement('a');
-      link.href = image;
+      link.href = dataUrl;
       link.download = `ScamIQ-${badge.replace(/\s+/g, '-')}-${actualScore}.png`;
       link.click();
-      
-      toast({ title: "Image saved!" });
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast({ 
-        title: "Export failed", 
-        description: "Could not generate image.",
-        variant: "destructive"
-      });
+      toast({ title: 'Share card saved!' });
+    } catch (err) {
+      toast({ title: 'Export failed', description: 'Could not generate image.', variant: 'destructive' });
     } finally {
       setIsExporting(false);
     }
@@ -160,19 +137,11 @@ export default function Results() {
 
   const playAIChallenges = () => {
     generateScenarios.mutate({ data: { count: 8 } }, {
-      onSuccess: (res) => {
-        resetGame();
-        startGame(res.scenarios);
-      },
+      onSuccess: (res) => { resetGame(); startGame(res.scenarios); },
       onError: () => {
-        toast({
-          title: "Failed to load AI scenarios",
-          description: "Falling back to standard challenges.",
-          variant: "destructive"
-        });
-        resetGame();
-        startGame();
-      }
+        toast({ title: 'Failed to load AI scenarios', description: 'Falling back to standard challenges.', variant: 'destructive' });
+        resetGame(); startGame();
+      },
     });
   };
 
@@ -184,13 +153,17 @@ export default function Results() {
         <div className="absolute inset-0 scanlines opacity-10"></div>
       </div>
       
-      <ShareCard ref={shareCardRef} score={actualScore} badge={badge} />
+      <ShareCard ref={shareCardRef} score={actualScore} badge={badge} correctCount={correctCount} />
 
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 relative z-10">
         
-        {/* Score Header */}
-        <div className="arcade-card border-2 border-primary/30 rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden bg-card/80 backdrop-blur-sm">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none"></div>
+        {/* ── Score Header ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="arcade-card border-2 border-primary/30 rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl relative overflow-hidden bg-card/80 backdrop-blur-sm"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
           
           <motion.div 
             initial={{ scale: 0.5, opacity: 0 }}
@@ -205,20 +178,19 @@ export default function Results() {
           <div className="text-8xl md:text-9xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-br from-primary via-accent to-primary mb-6 drop-shadow-[0_0_30px_rgba(56,189,248,0.4)]">
             {displayScore.toString().padStart(3, '0')}
           </div>
-          
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
+
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 1.5, type: 'spring' }}
+            transition={{ delay: 1.5, type: 'spring', stiffness: 180 }}
             className="bg-primary/20 border-2 border-primary/40 px-8 py-4 rounded-2xl flex items-center gap-4 shadow-[0_0_20px_rgba(56,189,248,0.2)]"
           >
-            <Trophy className="w-8 h-8 text-warning filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-            <span className="text-2xl font-black uppercase tracking-tight text-white drop-shadow-neon">{badge}</span>
+            <Trophy className={`w-8 h-8 ${badgeColorClass} filter drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]`} />
+            <span className={`text-2xl font-black uppercase tracking-tight drop-shadow-neon ${badgeColorClass}`}>{badge}</span>
           </motion.div>
-        </div>
+        </motion.div>
 
-        {/* Stats Grid */}
-        {/* Stats Grid */}
+        {/* ── Stats Grid ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="arcade-card border border-success/30 rounded-2xl p-4 flex flex-col items-center text-center bg-card/60">
             <span className="text-success text-[10px] font-black uppercase tracking-wider mb-1">CORRECT</span>
@@ -240,12 +212,36 @@ export default function Results() {
           </div>
         </div>
 
-        {/* AI Coaching Section */}
+        {/* ── Round Breakdown ── */}
+        {answers.length > 0 && (
+          <div className="arcade-card border border-border/50 rounded-2xl p-5 bg-card/40 backdrop-blur-sm">
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Round Breakdown</p>
+            <div className="flex gap-2 flex-wrap">
+              {answers.map((a, i) => (
+                <div
+                  key={i}
+                  title={`Round ${i + 1}: ${a.scenario.type} — ${a.isCorrect ? 'Correct' : 'Wrong'}`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all hover:scale-110 ${
+                    a.isCorrect
+                      ? 'bg-success/15 border-success/40 text-success shadow-[0_0_10px_rgba(52,211,153,0.2)]'
+                      : 'bg-destructive/15 border-destructive/40 text-destructive shadow-[0_0_10px_rgba(255,77,109,0.2)]'
+                  }`}
+                >
+                  {a.isCorrect
+                    ? <CheckCircle2 className="w-5 h-5" />
+                    : <XCircle className="w-5 h-5" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── AI Weakness Coach ── */}
         <div className="arcade-card border-2 border-accent/30 rounded-[2rem] p-6 relative overflow-hidden bg-card/80 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3 text-accent font-black uppercase tracking-wider">
               <BrainCircuit className="w-6 h-6 drop-shadow-neon-accent" />
-              <h3>Weakness Analysis</h3>
+              <h3 className="text-sm">AI Weakness Coach</h3>
             </div>
             {biggestWeakness && (
               <div className="bg-destructive/20 border border-destructive/40 px-3 py-1 rounded-lg text-[10px] font-black text-destructive uppercase tracking-widest animate-pulse">
@@ -255,71 +251,97 @@ export default function Results() {
           </div>
           
           {correctCount === 8 ? (
-            <p className="text-foreground">Flawless victory! You spotted every scam perfectly.</p>
+            <p className="text-sm text-foreground leading-relaxed">Flawless! You spotted every scam perfectly. You are a true Human Firewall. Challenge your friends to see if they can match your score.</p>
           ) : generateCoaching.isPending ? (
             <div className="flex flex-col gap-3 animate-pulse">
-              <div className="h-4 bg-secondary rounded w-3/4"></div>
-              <div className="h-4 bg-secondary rounded w-full"></div>
-              <div className="h-4 bg-secondary rounded w-5/6"></div>
+              <div className="h-4 bg-white/5 rounded w-3/4" />
+              <div className="h-4 bg-white/5 rounded w-full" />
+              <div className="h-4 bg-white/5 rounded w-5/6" />
             </div>
           ) : generateCoaching.data ? (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-foreground leading-relaxed">
-                {generateCoaching.data.message}
-              </p>
-              {generateCoaching.data.tips && generateCoaching.data.tips.length > 0 && (
-                <div className="bg-secondary p-4 rounded-xl">
-                  <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                    {generateCoaching.data.tips.map((tip, i) => (
-                      <li key={i}>{tip}</li>
-                    ))}
-                  </ul>
-                </div>
+              <p className="text-sm text-foreground leading-relaxed">{generateCoaching.data.message}</p>
+              {generateCoaching.data.tips?.length > 0 && (
+                <ul className="space-y-3">
+                  {generateCoaching.data.tips.map((tip, i) => (
+                    <li key={i} className="flex items-start gap-3 text-xs text-muted-foreground bg-white/5 p-3 rounded-xl border border-white/10">
+                      <span className="text-accent font-black shrink-0">>></span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Coach is analyzing your performance...</p>
+            <p className="text-xs text-muted-foreground">Systems online. Awaiting data stream for deep analysis...</p>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        {/* ── Share Card Preview ── */}
+        <div className="arcade-card border border-border/50 rounded-2xl p-6 bg-card/40 backdrop-blur-sm">
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Share Scorecard</p>
+          
+          <div className="rounded-2xl overflow-hidden border-2 border-primary/30 mb-6 shadow-2xl"
+            style={{ background: 'linear-gradient(145deg, #0B1020, #0F172A)', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+            <div className="absolute inset-0 arcade-grid opacity-10 pointer-events-none"></div>
+            <div className="relative z-10">
+              <div className="font-heading font-black text-xl mb-1" style={{ color: '#F8FAFC' }}>
+                Scam<span style={{ color: '#38BDF8' }} className="drop-shadow-neon">IQ</span>
+              </div>
+              <div className="font-mono font-black text-6xl text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent mb-2">
+                {actualScore}
+              </div>
+              <div className={`text-sm font-black uppercase tracking-wider ${badgeColorClass}`}>{badge}</div>
+            </div>
+            <div className="text-right relative z-10">
+              <div className="text-xs text-muted-foreground/60 mb-2 font-mono">SCAMIQ.APP</div>
+              <div className="text-sm font-bold text-white/90">{correctCount}/8 CORRECT</div>
+              <div className="mt-4 flex justify-end">
+                <Shield className="w-8 h-8 text-primary/40" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleShare} className="flex-1 min-w-0 h-12 rounded-xl bg-secondary border-2 border-border text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all active:translate-y-1">
+              <Share2 className="w-4 h-4 text-primary" /> Share
+            </button>
+            <button onClick={handleCopyLink} className="flex-1 min-w-0 h-12 rounded-xl bg-secondary border-2 border-border text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all active:translate-y-1">
+              <Copy className="w-4 h-4" /> Link
+            </button>
+            <button
+              onClick={handleDownloadImage}
+              disabled={isExporting}
+              className="w-full h-12 rounded-xl bg-primary/10 border-2 border-primary/30 text-primary text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary/20 transition-all disabled:opacity-60 active:translate-y-1"
+            >
+              <Download className="w-4 h-4" />
+              {isExporting ? 'Generating...' : 'Download (PNG + QR)'}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Actions ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           <Button 
             onClick={() => { resetGame(); startGame(); }}
             size="lg" 
-            className="h-16 text-lg font-black bg-card hover:bg-secondary text-foreground border-2 border-border rounded-2xl border-b-8 active:border-b-0 active:translate-y-2 transition-all"
+            className="h-16 text-lg font-black bg-card hover:bg-secondary text-foreground border-2 border-border rounded-2xl border-b-8 active:border-b-0 active:translate-y-2 transition-all uppercase tracking-widest"
           >
-            <Play className="w-6 h-6 mr-3" /> REPLAY
+            <Play className="w-6 h-6 mr-3" /> Replay
           </Button>
           
           <Button 
             onClick={playAIChallenges}
             size="lg" 
             disabled={generateScenarios.isPending}
-            className="h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl border-b-8 border-primary-foreground/20 active:border-b-0 active:translate-y-2 transition-all shadow-[0_10px_30px_rgba(56,189,248,0.4)]"
+            className="h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl border-b-8 border-primary-foreground/20 active:border-b-0 active:translate-y-2 transition-all shadow-[0_10px_30px_rgba(56,189,248,0.4)] uppercase tracking-widest"
           >
             {generateScenarios.isPending ? (
-              <span className="flex items-center uppercase"><Sparkles className="w-6 h-6 mr-3 animate-spin" /> Analyzing...</span>
+              <span className="flex items-center"><Sparkles className="w-6 h-6 mr-3 animate-spin" /> Analyzing...</span>
             ) : (
-              <span className="flex items-center uppercase"><Sparkles className="w-6 h-6 mr-3" /> AI CHALLENGE</span>
+              <span className="flex items-center"><Sparkles className="w-6 h-6 mr-3" /> AI Challenge</span>
             )}
           </Button>
-        </div>
-
-        {/* Share Section */}
-        <div className="mt-8 border-t border-border pt-8 flex flex-col items-center">
-          <h3 className="font-heading font-bold text-lg mb-4 text-foreground">Share Your Score</h3>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={handleShare} variant="outline" className="h-12 px-6 rounded-full bg-card hover:bg-secondary">
-              <Share2 className="w-4 h-4 mr-2 text-primary" /> X / Twitter
-            </Button>
-            <Button onClick={handleCopyLink} variant="outline" className="h-12 px-6 rounded-full bg-card hover:bg-secondary">
-              <Copy className="w-4 h-4 mr-2" /> Copy Link
-            </Button>
-            <Button onClick={handleDownloadImage} disabled={isExporting} variant="outline" className="h-12 px-6 rounded-full bg-card hover:bg-secondary">
-              <Download className="w-4 h-4 mr-2" /> {isExporting ? 'Saving...' : 'Save Image'}
-            </Button>
-          </div>
         </div>
 
       </div>
