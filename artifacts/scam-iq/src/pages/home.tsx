@@ -56,9 +56,9 @@ export default function Home() {
       ══════════════════════════════════════════ */}
       <nav className="w-full border-b sticky top-0 z-50 backdrop-blur-md" style={{ borderColor: S.border, background: "rgba(255,255,255,0.95)" }}>
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollTo("hero")}>
-            <img src="/images/logo.png" alt="ScamIQ Logo" className="w-10 h-10 object-contain" />
-            <span className="font-black text-2xl tracking-tight" style={{ color: S.green }}>scamIQ</span>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => scrollTo("hero")}>
+            <img src="/images/logo.png" alt="ScamIQ Logo" className="w-12 h-12 object-contain transition-transform hover:scale-110" />
+            <span className="font-black text-2xl tracking-tighter" style={{ color: S.green }}>scamIQ</span>
           </div>
           <div className="hidden md:flex items-center gap-6">
             <button onClick={() => scrollTo("how-it-works")} className="text-sm font-bold hover:opacity-70 transition" style={{ color: S.gray }}>How it Works</button>
@@ -87,25 +87,44 @@ export default function Home() {
       {/* ══════════════════════════════════════════
           S2: HERO
       ══════════════════════════════════════════ */}
-      <section id="hero" className="w-full max-w-6xl mx-auto px-6 py-16 md:py-28 flex flex-col md:flex-row items-center gap-10 md:gap-20">
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }} className="flex-1 flex items-center justify-center">
-          <div className="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
-            <div className="absolute w-full h-full rounded-full opacity-10" style={{ background: S.green }} />
-            <div className="absolute w-3/4 h-3/4 rounded-full opacity-15" style={{ background: S.blue }} />
-            <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}>
-              <ShieldCheck className="w-32 h-32 md:w-40 md:h-40" style={{ color: S.green }} strokeWidth={1.5} />
+      <section id="hero" className="w-full max-w-6xl mx-auto px-6 py-16 md:py-32 flex flex-col md:flex-row items-center gap-10 md:gap-20 overflow-hidden">
+        <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="flex-1 flex items-center justify-center relative">
+          <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] flex items-center justify-center">
+            {/* Background Glows */}
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.15, 0.25, 0.15]
+              }} 
+              transition={{ duration: 4, repeat: Infinity }}
+              className="absolute w-full h-full rounded-full" 
+              style={{ background: `radial-gradient(circle, ${S.green} 0%, transparent 70%)` }} 
+            />
+            
+            {/* Mascot Logo - LARGER */}
+            <motion.div 
+              className="relative z-10 w-56 h-56 md:w-80 md:h-80"
+              animate={{ y: [0, -20, 0] }} 
+              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            >
+              <img src="/images/logo.png" alt="ScamIQ Mascot" className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(88,204,2,0.3)]" />
             </motion.div>
-            <motion.div className="absolute top-4 right-4" animate={{ y: [0, -6, 0], rotate: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 4, delay: 0.5 }}>
-              <Mail className="w-10 h-10" style={{ color: "#ff4b4b" }} strokeWidth={2} />
+
+            {/* Floating Icons - Adjusted for larger mascot */}
+            <motion.div className="absolute top-0 right-4 z-20" animate={{ y: [0, -15, 0], rotate: [0, 15, 0] }} transition={{ repeat: Infinity, duration: 3.5, delay: 0.2 }}>
+              <div className="bg-white p-4 rounded-2xl shadow-2xl border-2 border-[#e5e5e5]">
+                <Mail className="w-8 h-8" style={{ color: "#ff4b4b" }} strokeWidth={2.5} />
+              </div>
             </motion.div>
-            <motion.div className="absolute bottom-8 left-2" animate={{ y: [0, -5, 0], rotate: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 3.5, delay: 1 }}>
-              <MessageSquare className="w-9 h-9" style={{ color: "#ff9600" }} strokeWidth={2} />
+            <motion.div className="absolute bottom-4 left-0 z-20" animate={{ y: [0, -18, 0], rotate: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, delay: 0.8 }}>
+              <div className="bg-white p-4 rounded-2xl shadow-2xl border-2 border-[#e5e5e5]">
+                <MessageSquare className="w-8 h-8" style={{ color: "#ff9600" }} strokeWidth={2.5} />
+              </div>
             </motion.div>
-            <motion.div className="absolute top-10 left-6" animate={{ y: [0, -7, 0] }} transition={{ repeat: Infinity, duration: 3.8, delay: 0.3 }}>
-              <Phone className="w-8 h-8" style={{ color: S.blue }} strokeWidth={2} />
-            </motion.div>
-            <motion.div className="absolute bottom-4 right-8" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 4.2, delay: 0.7 }}>
-              <Globe className="w-8 h-8" style={{ color: "#ce82ff" }} strokeWidth={2} />
+            <motion.div className="absolute top-1/4 left-0 z-20" animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 3.2, delay: 0.5 }}>
+              <div className="bg-white p-3 rounded-2xl shadow-2xl border-2 border-[#e5e5e5]">
+                <Phone className="w-6 h-6" style={{ color: S.blue }} strokeWidth={2.5} />
+              </div>
             </motion.div>
           </div>
         </motion.div>
@@ -236,19 +255,29 @@ export default function Home() {
       {/* ══════════════════════════════════════════
           S7: SCAM TYPES GRID
       ══════════════════════════════════════════ */}
-      <section id="scam-types" className="w-full max-w-5xl mx-auto px-6 py-20">
-        <motion.div {...fadeUp} className="text-center mb-12">
-          <h2 className="font-black text-2xl md:text-3xl mb-3" style={{ color: S.dark }}>6 Scam Types. 1 Game.</h2>
-          <p className="text-base max-w-lg mx-auto" style={{ color: S.gray }}>Master them all to become a Human Firewall.</p>
+      <section id="scam-types" className="w-full max-w-6xl mx-auto px-6 py-24 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-20 bg-gradient-to-b from-transparent to-[#e5e5e5]" />
+        <motion.div {...fadeUp} className="text-center mb-16">
+          <h2 className="font-black text-3xl md:text-4xl mb-4" style={{ color: S.dark }}>6 Scam Types. 1 Ultimate Goal.</h2>
+          <p className="text-lg max-w-2xl mx-auto" style={{ color: S.gray }}>We've categorized the most dangerous threats into bite-sized levels. Master them all to protect yourself and your loved ones.</p>
         </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {SCAM_TYPES.map((scam, i) => (
-            <motion.div key={scam.label} {...fadeUp} transition={{ delay: i * 0.08 }} className="scam-type-card">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: scam.bg }}>
-                <scam.icon className="w-7 h-7" style={{ color: scam.color }} />
+            <motion.div 
+              key={scam.label} 
+              {...fadeUp} 
+              transition={{ delay: i * 0.05 }} 
+              className="scam-type-card group p-8"
+              whileHover={{ y: -8, transition: { duration: 0.2 } }}
+            >
+              <div className="w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 transition-transform group-hover:rotate-6 group-hover:scale-110" style={{ background: scam.bg }}>
+                <scam.icon className="w-10 h-10" style={{ color: scam.color }} strokeWidth={2.5} />
               </div>
-              <h3 className="font-black text-base" style={{ color: S.dark }}>{scam.label}</h3>
-              <p className="text-xs leading-relaxed" style={{ color: S.gray }}>{scam.desc}</p>
+              <h3 className="font-black text-xl mb-3" style={{ color: S.dark }}>{scam.label}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: S.gray }}>{scam.desc}</p>
+              <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: scam.color }}>
+                Learn More <ChevronRight className="w-4 h-4" />
+              </div>
             </motion.div>
           ))}
         </div>
@@ -284,16 +313,19 @@ export default function Home() {
       {/* ══════════════════════════════════════════
           S9: BOTTOM CTA
       ══════════════════════════════════════════ */}
-      <section className="w-full py-20 flex flex-col items-center gap-6" style={{ background: S.green }}>
-        <motion.div {...fadeUp} className="flex flex-col items-center gap-6">
-          <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.5 }}>
-            <ShieldCheck className="w-16 h-16" style={{ color: S.white }} strokeWidth={1.5} />
+      <section className="w-full py-24 flex flex-col items-center gap-10 relative overflow-hidden" style={{ background: S.green }}>
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, #fff 0%, transparent 40%), radial-gradient(circle at 80% 70%, #fff 0%, transparent 40%)" }} />
+        
+        <motion.div {...fadeUp} className="flex flex-col items-center gap-8 relative z-10">
+          <motion.div animate={{ y: [0, -10, 0], rotate: [0, 5, 0, -5, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}>
+            <img src="/images/logo.png" alt="Mascot" className="w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl brightness-110" />
           </motion.div>
-          <h2 className="font-black text-3xl md:text-4xl text-center leading-tight" style={{ color: S.white }}>
-            learn scam detection<br />with scamIQ
+          <h2 className="font-black text-4xl md:text-6xl text-center leading-tight text-white drop-shadow-sm">
+            learn scam detection<br />the <span className="underline decoration-white/30">fun way</span>
           </h2>
-          <button onClick={() => go("/game")} id="btn-bottom-cta" className="duo-btn w-64 py-4 text-base font-extrabold uppercase rounded-2xl" style={{ background: S.white, color: S.green, borderColor: S.border, borderBottomWidth: "6px", borderBottomColor: "#e5e5e5" }}>
-            Get Started
+          <button onClick={() => go("/game")} id="btn-bottom-cta" className="duo-btn w-72 py-5 text-lg font-extrabold uppercase rounded-2xl transition-transform hover:scale-105 active:scale-95" style={{ background: S.white, color: S.green, borderColor: "#e5e5e5", borderBottomWidth: "8px" }}>
+            Get Started Now
           </button>
         </motion.div>
       </section>
@@ -301,45 +333,61 @@ export default function Home() {
       {/* ══════════════════════════════════════════
           S10: FOOTER
       ══════════════════════════════════════════ */}
-      <footer className="w-full border-t px-6 py-12" style={{ borderColor: S.border, background: S.white }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <img src="/images/logo.png" alt="ScamIQ Logo" className="w-8 h-8 object-contain" />
-              <span className="font-black text-lg" style={{ color: S.green }}>scamIQ</span>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: S.lightGray }}>The free, fun way to learn scam detection. Powered by AI.</p>
-          </div>
-          <div>
-            <h4 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: S.dark }}>Product</h4>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => go("/game")} className="text-sm text-left hover:underline" style={{ color: S.gray }}>Play Game</button>
-              <button onClick={() => scrollTo("how-it-works")} className="text-sm text-left hover:underline" style={{ color: S.gray }}>How it Works</button>
-              <button onClick={() => scrollTo("scam-types")} className="text-sm text-left hover:underline" style={{ color: S.gray }}>Scam Types</button>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: S.dark }}>Resources</h4>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => scrollTo("features")} className="text-sm text-left hover:underline" style={{ color: S.gray }}>Features</button>
-              <button onClick={() => scrollTo("about")} className="text-sm text-left hover:underline" style={{ color: S.gray }}>About Us</button>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: S.dark }}>Connect</h4>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: S.bg, border: `1px solid ${S.border}` }}>
-                <Twitter className="w-4 h-4" style={{ color: S.gray }} />
+      <footer className="w-full border-t px-6 pt-20 pb-10" style={{ borderColor: S.border, background: S.white }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
+            <div className="col-span-2">
+              <div className="flex items-center gap-3 mb-6 cursor-pointer" onClick={() => scrollTo("hero")}>
+                <img src="/images/logo.png" alt="ScamIQ Logo" className="w-10 h-10 object-contain" />
+                <span className="font-black text-2xl tracking-tighter" style={{ color: S.green }}>scamIQ</span>
               </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: S.bg, border: `1px solid ${S.border}` }}>
-                <Github className="w-4 h-4" style={{ color: S.gray }} />
+              <p className="text-sm leading-relaxed max-w-xs mb-6" style={{ color: S.gray }}>
+                Empowering the next generation to navigate the digital world safely through gamified AI education.
+              </p>
+              <div className="flex gap-4">
+                {[Twitter, Github].map((Icon, i) => (
+                  <motion.div 
+                    key={i}
+                    whileHover={{ y: -3, scale: 1.1 }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors hover:bg-[#1cb0f6]/10" 
+                    style={{ background: S.bg, border: `2px solid ${S.border}`, borderBottomWidth: "4px" }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: S.gray }} />
+                  </motion.div>
+                ))}
               </div>
             </div>
+            <div>
+              <h4 className="text-sm font-black uppercase tracking-widest mb-6" style={{ color: S.dark }}>Product</h4>
+              <div className="flex flex-col gap-4">
+                {["Play Game", "How it Works", "Scam Types", "Features"].map(link => (
+                  <button key={link} onClick={() => link === "Play Game" ? go("/game") : scrollTo(link.toLowerCase().replace(/ /g, "-"))} className="text-sm text-left font-bold hover:text-[#58cc02] transition-colors" style={{ color: S.gray }}>{link}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-black uppercase tracking-widest mb-6" style={{ color: S.dark }}>Support</h4>
+              <div className="flex flex-col gap-4">
+                {["About Us", "Privacy Policy", "Terms of Service", "Contact"].map(link => (
+                  <button key={link} onClick={() => scrollTo("about")} className="text-sm text-left font-bold hover:text-[#58cc02] transition-colors" style={{ color: S.gray }}>{link}</button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3" style={{ borderColor: S.border }}>
-          <p className="text-xs" style={{ color: S.lightGray }}>© 2026 ScamIQ. Built for the Replit 10-Year Buildathon.</p>
-          <p className="text-xs" style={{ color: S.lightGray }}>Made with ❤️ and AI</p>
+          
+          <div className="border-t pt-10 flex flex-col md:flex-row items-center justify-between gap-6" style={{ borderColor: S.border }}>
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6">
+              <p className="text-xs font-bold" style={{ color: S.lightGray }}>© 2026 ScamIQ Project.</p>
+              <div className="flex gap-4">
+                <button className="text-xs font-bold hover:underline" style={{ color: S.lightGray }}>Privacy</button>
+                <button className="text-xs font-bold hover:underline" style={{ color: S.lightGray }}>Terms</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold" style={{ color: S.lightGray }}>Built for</span>
+              <div className="px-3 py-1 rounded-lg bg-[#f7f7f7] border-2 border-[#e5e5e5] text-[10px] font-black uppercase tracking-tighter" style={{ color: S.dark }}>Replit 10Y Buildathon</div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
