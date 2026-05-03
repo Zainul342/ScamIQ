@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
+import confetti from 'canvas-confetti';
 import { Shield, Trophy, Share2, Download, Copy, Play, Sparkles, BrainCircuit, Flame, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
