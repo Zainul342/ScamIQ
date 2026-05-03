@@ -119,7 +119,7 @@ const STATIC_SCENARIOS = [
     category: "support",
     difficulty: "easy",
     sender: "Google (no-reply@accounts.google.com)",
-    content: "Your Google Account recovery phone number was changed. If you made this change, no action is needed. If not, review your account at myaccount.google.com.",
+    content: "Your Google Account recovery phone number was changed. If you made this change, no action is needed. Review your account at myaccount.google.com.",
     correctAnswer: "safe",
     redFlags: [],
     explanation: "This uses the official Google domain, does not create panic, and directs to the real Google account page.",
@@ -409,28 +409,21 @@ function selectRoundScenarios(scenarios: typeof STATIC_SCENARIOS, count: number 
   return selected.sort(() => Math.random() - 0.5);
 }
 
-router.post("/scenarios", async (req, res) => {
-  const parsed = GenerateScenariosBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid request body" });
-    return;
-  }
+// ─── STAGE 1: Primary Generation Prompt ────────────────────────────────────
+function buildGenerationPrompt(count: number): string {
+  return `You are an expert in internet security and social engineering education.
 
-  const { count } = parsed.data;
-
-  try {
-    const prompt = `You are an expert in internet security and social engineering education.
-
+TASK:
 Generate a batch of ${count} JSON scenarios for a "scam detection game" (ScamIQ).
 
 Schema:
 {
-  "id": "string (unique, e.g. ai_gen_001)",
+  "id": "unique string e.g. ai_gen_001",
   "type": "sms | email | dm | marketplace | login | ai_voice",
   "category": "delivery | bank | job_offer | support | family | crypto | purchase | toll | others",
   "difficulty": "easy | medium | hard",
   "sender": "Realistic but fictional sender name",
-  "content": "Message content (max 280 chars)",
+  "content": "Message content (max 240 chars)",
   "correctAnswer": "scam | suspicious | safe",
   "redFlags": ["max 3 concise red flag labels"],
   "explanation": "1-2 sentences explaining why",
@@ -439,53 +432,145 @@ Schema:
 
 Constraints:
 - Generate exactly ${count} scenarios
-- 60% scam, 25% suspicious, 15% safe
-- Include at least one of each: sms, email, dm, marketplace
-- Mix easy, medium, hard difficulty
+- 60% scam, 30% suspicious, 10% safe
+- Include at least one of each type: sms, email, dm, marketplace, login, ai_voice
+- Even mix of easy, medium, and hard difficulty
 - Use modern (2025-2026) scam patterns
-- Avoid real brand domains; use believable fictional names
+- Avoid real brand domains; use believable fictional brand names only
 - No PII or harmful instructions
-- Output a JSON array ONLY, no markdown, no commentary, no code fences`;
+- Avoid obvious grammar errors or unrealistic phrasing
+- Output JSON array ONLY (no markdown, no commentary, no code fences)`;
+}
 
-    const response = await openai.chat.completions.create({
+// ─── STAGE 2: Validation / QA Filter Prompt ────────────────────────────────
+function buildValidationPrompt(scenarios: unknown[]): string {
+  return `You are a strict QA reviewer for a scam detection educational game.
+
+Check each scenario in the JSON array below. Return a JSON object with this exact structure:
+{
+  "results": [
+    { "index": 0, "valid": true, "issues": [] },
+    { "index": 1, "valid": false, "issues": ["uses real domain example.com", "too obvious"] }
+  ]
+}
+
+Rules — mark valid: false if ANY apply:
+- Missing required fields (id, type, sender, content, correctAnswer, redFlags, explanation, safetyTip)
+- Uses real official brand domains as the scam URL (e.g., apple.com, google.com, paypal.com used as scam link)
+- Unrealistically obvious scam (e.g., broken grammar, "Congratulations YOU WON!!!")
+- Explanation label does not align with correctAnswer
+- Red flags list does not match the content
+- Content exceeds 280 characters
+- Contains actual PII or harmful instructions
+
+Scenarios to review:
+${JSON.stringify(scenarios)}
+
+Return JSON only, no markdown, no code fences.`;
+}
+
+// ─── Scenarios Route ────────────────────────────────────────────────────────
+router.post("/scenarios", async (req, res) => {
+  const parsed = GenerateScenariosBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  const { count } = parsed.data;
+  const generateCount = count + 4; // buffer for validation failures
+
+  try {
+    // ── STAGE 1: Primary Generation ──────────────────────────────────────
+    req.log.info({ count: generateCount }, "Stage 1: generating AI scenarios");
+
+    const stage1 = await openai.chat.completions.create({
       model: "gpt-5-mini",
       max_completion_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: buildGenerationPrompt(generateCount) }],
     });
 
-    const raw = response.choices[0]?.message?.content ?? "[]";
-    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const aiScenarios = JSON.parse(cleaned);
+    const raw1 = stage1.choices[0]?.message?.content ?? "[]";
+    const cleaned1 = raw1.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const generated: Record<string, unknown>[] = JSON.parse(cleaned1);
 
-    if (!Array.isArray(aiScenarios) || aiScenarios.length === 0) {
-      throw new Error("Invalid AI response format");
+    if (!Array.isArray(generated) || generated.length < Math.ceil(count * 0.5)) {
+      throw new Error("Stage 1: insufficient scenarios generated");
     }
 
-    const valid = aiScenarios.filter(
-      (s: Record<string, unknown>) =>
-        s.id &&
-        s.type &&
-        s.difficulty &&
-        s.sender &&
-        s.content &&
-        s.correctAnswer &&
-        Array.isArray(s.redFlags) &&
-        s.explanation &&
-        s.safetyTip,
+    // Schema pre-filter
+    const schemaValid = generated.filter(
+      (s) =>
+        s.id && s.type && s.difficulty && s.sender && s.content &&
+        s.correctAnswer && Array.isArray(s.redFlags) && s.explanation && s.safetyTip,
     );
 
-    if (valid.length < 4) {
-      throw new Error("Too few valid scenarios from AI");
+    req.log.info({ total: generated.length, schemaValid: schemaValid.length }, "Stage 1 complete");
+
+    // ── STAGE 2: QA Validation ────────────────────────────────────────────
+    let finalScenarios: Record<string, unknown>[] = schemaValid;
+
+    try {
+      req.log.info({ count: schemaValid.length }, "Stage 2: running QA validation filter");
+
+      const stage2 = await openai.chat.completions.create({
+        model: "gpt-5-mini",
+        max_completion_tokens: 1024,
+        messages: [{ role: "user", content: buildValidationPrompt(schemaValid) }],
+      });
+
+      const raw2 = stage2.choices[0]?.message?.content ?? "{}";
+      const cleaned2 = raw2.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const validation: { results: { index: number; valid: boolean; issues: string[] }[] } =
+        JSON.parse(cleaned2);
+
+      const passedIndices = new Set<number>(
+        (validation.results ?? [])
+          .filter((r) => r.valid !== false)
+          .map((r) => r.index),
+      );
+
+      const failedCount = schemaValid.length - passedIndices.size;
+      req.log.info(
+        { passed: passedIndices.size, failed: failedCount },
+        "Stage 2 validation complete",
+      );
+
+      // Keep only QA-passed scenarios
+      const qaFiltered = schemaValid.filter((_, i) => passedIndices.has(i));
+      if (qaFiltered.length >= Math.ceil(count * 0.5)) {
+        finalScenarios = qaFiltered;
+      } else {
+        req.log.warn(
+          { qaFiltered: qaFiltered.length, count },
+          "Too few passed QA — using full Stage 1 output",
+        );
+      }
+    } catch (validationErr) {
+      req.log.warn({ validationErr }, "Stage 2 validation failed — using Stage 1 output as-is");
     }
 
-    res.json({ scenarios: valid, source: "ai" });
+    // ── Gap Fill: supplement with static if needed ────────────────────────
+    const needed = count - finalScenarios.length;
+    if (needed > 0) {
+      req.log.info({ needed }, "Supplementing with static scenarios");
+      const staticFill = selectRoundScenarios(STATIC_SCENARIOS, needed + 2).slice(0, needed);
+      finalScenarios = [...finalScenarios, ...staticFill];
+    }
+
+    if (finalScenarios.length < Math.ceil(count * 0.5)) {
+      throw new Error("Insufficient valid scenarios after two-stage pipeline");
+    }
+
+    res.json({ scenarios: finalScenarios.slice(0, count), source: "ai" });
   } catch (err) {
-    req.log.warn({ err }, "AI scenario generation failed, falling back to static");
+    req.log.warn({ err }, "AI scenario pipeline failed, falling back to static dataset");
     const fallback = selectRoundScenarios(STATIC_SCENARIOS, count);
     res.json({ scenarios: fallback, source: "fallback" });
   }
 });
 
+// ─── Coach Route ─────────────────────────────────────────────────────────────
 router.post("/coach", async (req, res) => {
   const parsed = GenerateCoachingBody.safeParse(req.body);
   if (!parsed.success) {
@@ -535,6 +620,7 @@ router.post("/coach", async (req, res) => {
   }
 
   try {
+    // Weakness Coach Prompt — from ScamIQ AI Prompt Sheet
     const wrongList = wrongAnswers
       .map(
         (w) =>
@@ -542,37 +628,37 @@ router.post("/coach", async (req, res) => {
       )
       .join("\n");
 
-    const prompt = `The user just finished a ScamIQ game. Score: ${score}/100. Badge: ${badge}.
+    const coachPrompt = `The user finished a ScamIQ game. Score: ${score}/100. Badge: ${badge}.
 
-They got these wrong:
+Wrong answers:
 ${wrongList}
 
 Provide:
-1) One sentence summarizing their biggest weakness pattern
-2) Exactly 2 specific, actionable tips to improve
-3) An encouraging closing line
+1) One-sentence summary of main weakness
+2) Two actionable tips
+3) Encouraging closing line
 
 Constraints:
 - Max 80 words total
 - Friendly, arcade-style tone
 - Avoid technical jargon
-- Focus on behavior patterns, not individual mistakes
+- Focus on behavior patterns, not just individual mistakes
 - Output JSON: { "message": "...", "tips": ["tip1", "tip2"] }
 - JSON only, no markdown, no code fences`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-5-mini",
       max_completion_tokens: 512,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: coachPrompt }],
     });
 
     const raw = response.choices[0]?.message?.content ?? "{}";
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const parsed2 = JSON.parse(cleaned);
+    const result = JSON.parse(cleaned);
 
     res.json({
-      message: parsed2.message ?? "Keep practicing — every round makes you sharper!",
-      tips: Array.isArray(parsed2.tips) ? parsed2.tips.slice(0, 3) : [],
+      message: result.message ?? "Keep practicing — every round makes you sharper!",
+      tips: Array.isArray(result.tips) ? result.tips.slice(0, 3) : [],
       source: "ai",
     });
   } catch (err) {
@@ -582,7 +668,8 @@ Constraints:
     for (const w of wrongAnswers) {
       typeCounts[w.type] = (typeCounts[w.type] || 0) + 1;
     }
-    const weakestType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "sms";
+    const weakestType =
+      Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "sms";
     const tips = FALLBACK_TIPS[weakestType] ?? FALLBACK_TIPS.sms;
 
     res.json({
