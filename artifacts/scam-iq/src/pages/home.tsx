@@ -20,6 +20,15 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [selected, setSelected] = useState<string | null>(null);
   const [answerState, setAnswerState] = useState<AnswerState>("idle");
+  const [liveCount, setLiveCount] = useState(12847);
+
+  // Simulate live count pulse
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveCount(prev => prev + Math.floor(Math.random() * 2));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   function handleAnswer(answer: string) {
     if (selected) return;
@@ -34,7 +43,10 @@ export default function Home() {
   const answered = answerState !== "idle";
 
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-background overflow-hidden relative px-4 py-8">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-background overflow-hidden relative px-4 py-8 scanlines">
+      {/* arcade background grid */}
+      <div className="absolute inset-0 arcade-grid opacity-20 pointer-events-none" />
+      
       {/* ambient glows */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/10 blur-[120px] rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-accent/8 blur-[120px] rounded-full" />
@@ -44,14 +56,14 @@ export default function Home() {
         {/* ── TOP BAR ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
+            <Shield className="w-5 h-5 text-primary drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
             <span className="font-heading font-black text-xl tracking-tight">
-              Scam<span className="text-primary">IQ</span>
+              Scam<span className="text-primary glow-text-primary">IQ</span>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card border border-border rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-card/50 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 animate-pulse-soft">
             <Users className="w-3.5 h-3.5 text-success" />
-            <span>12,847 tested today</span>
+            <span>{liveCount.toLocaleString()} tested today</span>
           </div>
         </div>
 
@@ -59,7 +71,7 @@ export default function Home() {
         <div className="text-center pt-1 pb-2">
           <h1 className="font-heading font-black text-4xl md:text-5xl leading-tight text-foreground mb-2">
             Can you spot<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent glow-text-primary">
               the scam?
             </span>
           </h1>
@@ -74,7 +86,7 @@ export default function Home() {
             Round 1 of 8
           </span>
           <div className="flex-1 h-2 bg-card rounded-full border border-border overflow-hidden">
-            <div className="h-full w-[12.5%] bg-primary rounded-full" />
+            <div className="h-full w-[12.5%] bg-primary rounded-full shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
           </div>
           <div className="flex items-center gap-1 text-xs font-semibold text-warning">
             <Flame className="w-3.5 h-3.5" />
@@ -90,13 +102,14 @@ export default function Home() {
               : {}
           }
           transition={{ duration: 0.4 }}
-          className={`rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
+          className={`rounded-2xl border-2 overflow-hidden transition-all duration-300 arcade-card ${
             answerState === "correct"
               ? "border-success shadow-[0_0_32px_-4px_rgba(52,211,153,0.5)]"
               : answerState === "wrong"
-              ? "border-danger shadow-[0_0_32px_-4px_rgba(255,77,109,0.4)]"
+              ? "border-destructive shadow-[0_0_32px_-4px_rgba(255,77,109,0.4)]"
               : "border-border"
           }`}
+          id="demo-scenario-card"
         >
           {/* Card header */}
           <div className="bg-card px-4 py-3 border-b border-border flex items-center justify-between">
@@ -105,14 +118,14 @@ export default function Home() {
               <p className="text-sm font-semibold text-foreground">{DEMO_SCENARIO.sender}</p>
               <p className="text-xs text-muted-foreground">{DEMO_SCENARIO.senderNumber}</p>
             </div>
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground">
+            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground border border-border">
               U
             </div>
           </div>
 
           {/* SMS bubble */}
           <div className="bg-background px-4 py-4">
-            <div className="bg-[#1E2A3A] rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] relative">
+            <div className="bg-[#1E2A3A] border border-slate-700/50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] relative shadow-sm">
               <p className="text-sm text-foreground leading-relaxed">{DEMO_SCENARIO.message}</p>
               <p className="text-right text-xs text-muted-foreground mt-1">10:42 AM</p>
             </div>
@@ -127,18 +140,18 @@ export default function Home() {
                 className={`mx-4 mb-4 rounded-xl p-4 border ${
                   answerState === "correct"
                     ? "bg-success/10 border-success/30"
-                    : "bg-danger/10 border-danger/30"
+                    : "bg-destructive/10 border-destructive/30"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   {answerState === "correct" ? (
                     <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-danger flex-shrink-0" />
+                    <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
                   )}
                   <span
                     className={`font-heading font-bold text-base ${
-                      answerState === "correct" ? "text-success" : "text-danger"
+                      answerState === "correct" ? "text-success" : "text-destructive"
                     }`}
                   >
                     {answerState === "correct" ? "Correct!" : "This is a Scam"}
@@ -153,7 +166,7 @@ export default function Home() {
                   {DEMO_SCENARIO.redFlags.map((flag) => (
                     <span
                       key={flag}
-                      className="text-xs px-2.5 py-1 rounded-full bg-danger/20 text-danger border border-danger/30 font-medium"
+                      className="text-xs px-2.5 py-1 rounded-full bg-destructive/20 text-destructive border border-destructive/30 font-medium"
                     >
                       {flag}
                     </span>
@@ -184,8 +197,8 @@ export default function Home() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAnswer("safe")}
-                  data-testid="btn-safe"
-                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-success/30 hover:border-success hover:bg-success/10 transition-all min-h-[70px] font-bold text-success text-sm"
+                  id="btn-safe"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-success/30 hover:border-success hover:bg-success/10 transition-all min-h-[70px] font-bold text-success text-sm shadow-[0_4px_0_0_rgba(52,211,153,0.2)] active:translate-y-1 active:shadow-none"
                 >
                   <Shield className="w-5 h-5" />
                   Safe
@@ -193,8 +206,8 @@ export default function Home() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAnswer("suspicious")}
-                  data-testid="btn-suspicious"
-                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-warning/30 hover:border-warning hover:bg-warning/10 transition-all min-h-[70px] font-bold text-warning text-sm"
+                  id="btn-suspicious"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-warning/30 hover:border-warning hover:bg-warning/10 transition-all min-h-[70px] font-bold text-warning text-sm shadow-[0_4px_0_0_rgba(251,191,36,0.2)] active:translate-y-1 active:shadow-none"
                 >
                   <span className="text-xl leading-none">?</span>
                   Suspicious
@@ -202,8 +215,8 @@ export default function Home() {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleAnswer("scam")}
-                  data-testid="btn-scam"
-                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-danger/30 hover:border-danger hover:bg-danger/10 transition-all min-h-[70px] font-bold text-danger text-sm"
+                  id="btn-scam"
+                  className="relative flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl bg-card border-2 border-destructive/30 hover:border-destructive hover:bg-destructive/10 transition-all min-h-[70px] font-bold text-destructive text-sm shadow-[0_4px_0_0_rgba(255,77,109,0.2)] active:translate-y-1 active:shadow-none"
                 >
                   <XCircle className="w-5 h-5" />
                   Scam
@@ -218,10 +231,10 @@ export default function Home() {
               className="flex flex-col gap-3"
             >
               {/* Mini score preview */}
-              <div className="flex items-center justify-between bg-card rounded-xl border border-border px-4 py-3">
+              <div className="flex items-center justify-between bg-card rounded-xl border border-border px-4 py-3 shadow-inner">
                 <div className="text-center flex-1">
                   <p className="text-xs text-muted-foreground font-medium">Score</p>
-                  <p className="text-xl font-mono font-black text-primary">
+                  <p className="text-xl font-mono font-black text-primary glow-text-primary">
                     {answerState === "correct" ? "100" : "0"}
                   </p>
                 </div>
@@ -240,8 +253,8 @@ export default function Home() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={handleStart}
-                data-testid="btn-start-test"
-                className="w-full h-16 rounded-2xl bg-primary text-background font-heading font-black text-xl flex items-center justify-center gap-3 shadow-[0_0_40px_-8px_rgba(56,189,248,0.6)] hover:shadow-[0_0_60px_-8px_rgba(56,189,248,0.8)] hover:brightness-110 transition-all"
+                id="btn-start-test"
+                className="w-full h-16 rounded-2xl bg-primary text-background font-heading font-black text-xl flex items-center justify-center gap-3 shadow-[0_0_40px_-8px_rgba(56,189,248,0.6)] hover:shadow-[0_0_60px_-8px_rgba(56,189,248,0.8)] hover:brightness-110 transition-all border-b-4 border-primary-foreground/20 active:translate-y-1 active:border-b-0"
               >
                 Continue — Round 2
                 <ChevronRight className="w-6 h-6" />
@@ -265,17 +278,22 @@ export default function Home() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={handleStart}
-              data-testid="btn-start-full"
-              className="w-full h-14 rounded-2xl border-2 border-primary/40 text-primary font-heading font-bold text-lg flex items-center justify-center gap-2 hover:bg-primary/10 transition-all"
+              id="btn-start-full"
+              className="w-full h-14 rounded-2xl border-2 border-primary/40 text-primary font-heading font-bold text-lg flex items-center justify-center gap-2 hover:bg-primary/10 transition-all active:translate-y-0.5 shadow-[0_2px_0_0_rgba(56,189,248,0.2)]"
             >
               Start Full Test — 8 Rounds
               <ChevronRight className="w-5 h-5" />
             </motion.button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground leading-tight">
               Can you get <span className="text-warning font-semibold">8/8?</span> Most people don't.
             </p>
           </div>
         )}
+
+      </div>
+    </div>
+  );
+}
 
       </div>
     </div>
